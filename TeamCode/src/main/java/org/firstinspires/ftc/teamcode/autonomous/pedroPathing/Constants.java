@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.pedroPathing;
+package org.firstinspires.ftc.teamcode.autonomous.pedroPathing;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
@@ -14,6 +14,9 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Constants {
+
+
+    //PIDF constant setup: zero power accelerations, PIDF coefficients
     public static FollowerConstants followerConstants = new FollowerConstants()
             .mass(9.7)
             .forwardZeroPowerAcceleration(-62.63123937567751)
@@ -24,7 +27,7 @@ public class Constants {
             .centripetalScaling(0.0006)
             ;
 
-
+    //Motor constant setup: configuration, direction, velocity
     public static MecanumConstants driveConstants = new MecanumConstants()
             .maxPower(1)
             .rightFrontMotorName("FRwheel")
@@ -38,7 +41,7 @@ public class Constants {
             .xVelocity(61.76695591880741)
             .yVelocity(61.573318208052683);
 
-
+    //Encoder localizations
     public static ThreeWheelIMUConstants localizerConstants = new ThreeWheelIMUConstants()
             /*.forwardTicksToInches(-0.01434737309)
             .strafeTicksToInches(-0.002189522345)
@@ -72,7 +75,7 @@ public class Constants {
             .IMU_Orientation(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
                     RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
 
-
+    //Path constraints (behaviour setup, eg, when to stop in a path)
     public static PathConstraints pathConstraints = new PathConstraints(0.99,
             100,
             0.91,

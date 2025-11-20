@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.autonomous.pedroPathing;
+package org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;

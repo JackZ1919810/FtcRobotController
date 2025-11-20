@@ -44,6 +44,8 @@ public class OmniDriveTeleOp extends OpMode {
 
     private boolean shoot_far = true;
 
+    private double shoot_power;
+
     @Override
     public void init() {
         FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
@@ -175,9 +177,9 @@ public class OmniDriveTeleOp extends OpMode {
 
         if (shooterActive_short) {
 
-            shooterTargetTPS = 2000;
+            shooterTargetTPS = 2175;
             // PID on absolute speed, so direction sign doesn't matter
-            double currentSpeed = Math.abs(shooterTPS);
+          /*  double currentSpeed = Math.abs(shooterTPS);
             double error = shooterTargetTPS - currentSpeed;
 
             shooterIntegral += error * dt;
@@ -194,7 +196,12 @@ public class OmniDriveTeleOp extends OpMode {
             // While shooter is active, you previously fed Index backwards
             Index.setPower(-IndexPower);
 
-            lastError = error;
+           lastError = error;
+
+        */
+           shoot_power = -Range.clip(shooterTargetTPS, 0, 1);
+           shooter1.setPower(shoot_power);
+           shooter2.setPower(shoot_power);
 
         } else {
             // Shooter off, reset PID state
@@ -207,9 +214,9 @@ public class OmniDriveTeleOp extends OpMode {
         //long range shooter
         if (shooterActive_long) {
 
-            shooterTargetTPS = 2200;
+            shooterTargetTPS = 2500;
             // PID on absolute speed so direction sign doesn't matter
-            double currentSpeed = Math.abs(shooterTPS);
+            /* double currentSpeed = Math.abs(shooterTPS);
             double error = shooterTargetTPS - currentSpeed;
 
             shooterIntegral += error * dt;
@@ -227,7 +234,10 @@ public class OmniDriveTeleOp extends OpMode {
             Index.setPower(-IndexPower);
 
             lastError = error;
-
+            */
+            shoot_power = -Range.clip(shooterTargetTPS, 0, 1);
+            shooter1.setPower(shoot_power);
+            shooter2.setPower(shoot_power);
         } else {
             // Shooter off, reset PID state
             shooter1.setPower(0);

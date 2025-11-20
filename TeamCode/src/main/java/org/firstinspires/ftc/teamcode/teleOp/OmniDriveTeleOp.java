@@ -42,6 +42,8 @@ public class OmniDriveTeleOp extends OpMode {
     private double ServoPosition1 = 0;
     private double Servoposition2 = 0.5;
 
+    private int shoot_distance = 0;
+
     @Override
     public void init() {
         FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
@@ -90,6 +92,11 @@ public class OmniDriveTeleOp extends OpMode {
         }
         lastAState = currentAState;
 
+        //detect pressing time of the distance changing button
+        if (gamepad2.dpad_up){
+            shoot_distance = shoot_distance + 1;
+        }
+
         double lx = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
         double ly = applyDeadzone(Math.pow(-gamepad1.left_stick_y, 3));
         double rx = applyDeadzone(Math.pow(gamepad1.right_stick_x, 3)) * TURN_SCALE;
@@ -118,20 +125,21 @@ public class OmniDriveTeleOp extends OpMode {
         BRwheel.setPower(br);
 
         // ========== GAMEPAD LOGIC ==========
-        boolean shooterActive = (gamepad2.right_trigger > 0.1);
+        boolean shooterActive_short = (gamepad2.right_trigger > 0.1 && (shoot_distance % 2 == 0));
+        boolean shooterActive_long = (gamepad2.right_trigger > 0.1 && (shoot_distance % 2 != 0));
         boolean intakeActive = (gamepad2.left_trigger > 0.1);
         boolean IndexActive = (gamepad2.right_bumper);
         boolean BallsOut = (gamepad2.left_bumper);
         boolean ServoActive = (gamepad1.right_trigger > 0.1);
 
         // Optional: adjust shooter target speed with dpad
-        if (gamepad2.dpad_up) {
+       /* if (gamepad2.dpad_up) {
             shooterTargetTPS += 100; // increase target speed
         } else if (gamepad2.dpad_down) {
             shooterTargetTPS -= 100; // decrease target speed
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
-
+*/
         // ========== BALLS OUT (REVERSE ALL FEED) ==========
         if (BallsOut) {
             Index.setPower(IndexPower);
@@ -159,7 +167,11 @@ public class OmniDriveTeleOp extends OpMode {
             shooterTPS = (currentPos - lastShooterPos) / dt; // ticks per second
         }
 
-        if (shooterActive) {
+        //short distance shooter
+
+        if (shooterActive_short) {
+
+            shooterTargetTPS = 2000;
             // PID on absolute speed so direction sign doesn't matter
             double currentSpeed = Math.abs(shooterTPS);
             double error = shooterTargetTPS - currentSpeed;
@@ -179,6 +191,39 @@ public class OmniDriveTeleOp extends OpMode {
             Index.setPower(-IndexPower);
 
             lastError = error;
+
+        } else {
+            // Shooter off, reset PID state
+            shooter1.setPower(0);
+            shooter2.setPower(0);
+            shooterIntegral = 0;
+            lastError = 0;
+        }
+
+        //long range shooter
+        if (shooterActive_long) {
+
+            shooterTargetTPS = 2200;
+            // PID on absolute speed so direction sign doesn't matter
+            double currentSpeed = Math.abs(shooterTPS);
+            double error = shooterTargetTPS - currentSpeed;
+
+            shooterIntegral += error * dt;
+            double derivative = (dt > 0) ? (error - lastError) / dt : 0;
+
+            double output = kP * error + kI * shooterIntegral + kD * derivative;
+
+            // Shooter power command (negative because you used -0.67 before)
+            double shooterPower = -Range.clip(output, 0, 1);
+
+            shooter1.setPower(shooterPower);
+            shooter2.setPower(shooterPower);
+
+            // While shooter is active, you previously fed Index backwards
+            Index.setPower(-IndexPower);
+
+            lastError = error;
+
         } else {
             // Shooter off, reset PID state
             shooter1.setPower(0);
@@ -194,8 +239,8 @@ public class OmniDriveTeleOp extends OpMode {
         // ========== INDEX MANUAL FEED ==========
         if (IndexActive) {
             Index.setPower(-IndexPower);
-        } else if (!shooterActive && !BallsOut && !intakeActive) {
-            // Only stop here if nothing else is trying to move Index
+        } else if (!shooterActive_short && !shooterActive_short && !BallsOut && !intakeActive) {
+            // Only stop here if nothing else is trying to move the Index
             Index.setPower(stop);
         }
 
@@ -210,7 +255,7 @@ public class OmniDriveTeleOp extends OpMode {
         // (Optional) telemetry to help tune PID
         telemetry.addData("Shooter TPS", shooterTPS);
         telemetry.addData("Target TPS", shooterTargetTPS);
-        telemetry.addData("ShooterActive", shooterActive);
+        telemetry.addData("ShooterActive", shooterActive_long || shooterActive_short);
         telemetry.update();
     }
 

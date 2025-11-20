@@ -42,7 +42,7 @@ public class OmniDriveTeleOp extends OpMode {
     private double ServoPosition1 = 0;
     private double Servoposition2 = 0.5;
 
-    private int shoot_distance = 0;
+    private boolean shoot_far = true;
 
     @Override
     public void init() {
@@ -94,7 +94,10 @@ public class OmniDriveTeleOp extends OpMode {
 
         //detect pressing time of the distance changing button
         if (gamepad2.dpad_up){
-            shoot_distance = shoot_distance + 1;
+            shoot_far = true;
+        }
+        else if (gamepad2.dpad_down){
+            shoot_far = false;
         }
 
         double lx = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
@@ -125,21 +128,22 @@ public class OmniDriveTeleOp extends OpMode {
         BRwheel.setPower(br);
 
         // ========== GAMEPAD LOGIC ==========
-        boolean shooterActive_short = (gamepad2.right_trigger > 0.1 && (shoot_distance % 2 == 0));
-        boolean shooterActive_long = (gamepad2.right_trigger > 0.1 && (shoot_distance % 2 != 0));
+        boolean shooterActive_short = (gamepad2.right_trigger > 0.1 && shoot_far == false);
+        boolean shooterActive_long = (gamepad2.right_trigger > 0.1 && shoot_far == true);
         boolean intakeActive = (gamepad2.left_trigger > 0.1);
         boolean IndexActive = (gamepad2.right_bumper);
         boolean BallsOut = (gamepad2.left_bumper);
         boolean ServoActive = (gamepad1.right_trigger > 0.1);
 
-        // Optional: adjust shooter target speed with dpad
+
        /* if (gamepad2.dpad_up) {
             shooterTargetTPS += 100; // increase target speed
         } else if (gamepad2.dpad_down) {
             shooterTargetTPS -= 100; // decrease target speed
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
-*/
+        */
+
         // ========== BALLS OUT (REVERSE ALL FEED) ==========
         if (BallsOut) {
             Index.setPower(IndexPower);

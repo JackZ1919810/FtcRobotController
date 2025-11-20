@@ -176,7 +176,7 @@ public class OmniDriveTeleOp extends OpMode {
         if (shooterActive_short) {
 
             shooterTargetTPS = 2000;
-            // PID on absolute speed so direction sign doesn't matter
+            // PID on absolute speed, so direction sign doesn't matter
             double currentSpeed = Math.abs(shooterTPS);
             double error = shooterTargetTPS - currentSpeed;
 

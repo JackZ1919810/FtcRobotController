@@ -21,8 +21,8 @@ public class OmniDriveTeleOp extends OpMode {
     private DcMotor IntakeMotor;
     private DcMotor Index;
     private DistanceSensor Distance;
-    private static final double DEADZONE = 0.06;
-    private static final double TURN_SCALE = 0.9;
+    private static final double DEADZONE = 0.09;
+    private static final double TURN_SCALE = 0.7;
 
     // Shooter PID constants (start with these and tune)
     private double kP = 0.0004;
@@ -44,7 +44,7 @@ public class OmniDriveTeleOp extends OpMode {
     private double lastError = 0;
 
     private double IntakePower =  1;
-    private double IndexPower = 0.4;
+    private double IndexPower = 0.24;
     private double stop = 0;
 
     private boolean reverseControls = false;
@@ -86,9 +86,9 @@ public class OmniDriveTeleOp extends OpMode {
         shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Index.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        shooter1.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        shooter2.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        Index.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        shooter1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        Index.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
 
         lastShooterPos = shooter1.getCurrentPosition();
@@ -143,9 +143,9 @@ public class OmniDriveTeleOp extends OpMode {
 
         //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 2200; // Far target
+            shooterTargetTPS = 2600; // Far target
         } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 2000; // close target
+            shooterTargetTPS = 2200; // close target
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 

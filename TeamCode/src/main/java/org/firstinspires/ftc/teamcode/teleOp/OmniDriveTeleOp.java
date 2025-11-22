@@ -41,7 +41,7 @@ public class OmniDriveTeleOp extends OpMode {
 
 
     // Target shooter speed in ticks per second (tune this!)
-    private double shooterTargetTPS = 2000.0;
+    private double shooterTargetTPS = 2600.0;
 
     // Shooter PID state
     private int lastShooterPos = 0;

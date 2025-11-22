@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+@Disabled
 @TeleOp(name = "HolonomicDrive_DirectionTest", group = "Debug")
 public class HolonomicDrive_DirectionTest extends LinearOpMode {
     // TODO: change these to match your Robot Configuration

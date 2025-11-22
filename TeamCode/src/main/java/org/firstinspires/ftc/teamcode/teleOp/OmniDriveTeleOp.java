@@ -9,6 +9,12 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.util.Range;
 
+import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+
+
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.Base64;
@@ -49,6 +55,8 @@ public class OmniDriveTeleOp extends OpMode {
 
     private boolean reverseControls = false;
     private boolean lastAState = false;
+
+    private IMU imu;
 
 
     @Override
@@ -93,10 +101,26 @@ public class OmniDriveTeleOp extends OpMode {
 
         lastShooterPos = shooter1.getCurrentPosition();
         lastTime = getRuntime();
+
+        //Imu reading init
+        imu = hardwareMap.get(IMU.class, "imu");
+
+        IMU.Parameters params = new IMU.Parameters(
+                new RevHubOrientationOnRobot(
+                        RevHubOrientationOnRobot.LogoFacingDirection.UP,
+                        RevHubOrientationOnRobot.UsbFacingDirection.FORWARD
+                )
+        );
+        imu.initialize(params);
+
     }
 
     @Override
     public void loop() {
+
+        YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
+        double headingDeg = orientation.getYaw(AngleUnit.DEGREES);
+
         // ========== DRIVE CONTROLS ==========
         boolean currentAState = gamepad1.a;
         if (currentAState && !lastAState) {
@@ -223,6 +247,8 @@ public class OmniDriveTeleOp extends OpMode {
         telemetry.addData("Target TPS", shooterTargetTPS);
         telemetry.addData("ShooterActive", shooterActive);
         telemetry.addData("IndexEncoder:", IndexValue);
+        telemetry.addData("Heading (deg)", "%.1f", headingDeg);
+
         // Ball detector with timed auto-index
         // Start auto-indexing when a ball is detected and no other index mode is active
         if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && !IndexActive) {

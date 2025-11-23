@@ -1,23 +1,23 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
-import static java.lang.Thread.sleep;
-
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
-import com.qualcomm.robotcore.util.Range;
-
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-
-
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
-import java.util.Base64;
+import java.util.List;
 
 @TeleOp(name = "TeleOp ", group = "TeleOp")
 public class OmniDriveTeleOp extends OpMode {
@@ -30,20 +30,32 @@ public class OmniDriveTeleOp extends OpMode {
     private static final double DEADZONE = 0.09;
     private static final double TURN_SCALE = 0.7;
 
-    // Shooter PID constants (start with these and tune)
+    private VisionPortal visionPortal;
+    private AprilTagProcessor aprilTag;
+
+    private boolean autoAimActive = false;
+
+    private double kStrafe = 0.6;
+    private double kForward = 0.8;
+    private double kTurn = 0.02;
+
+    private double desiredX = 0.0;
+    private double desiredY = 0.65; // Renamed from desiredZ, Y is forward in FTC coordinates
+    private double desiredYaw = 0.0;
+
+    private double xTolerance = 0.03;
+    private double yTolerance = 0.03; // Renamed from zTolerance
+    private double yawTolerance = 1.5;
+
     private double kP = 0.0004;
     private double kI = 0.0000;
     private double kD = 0.0000;
 
-    // Auto index (distance-based) state
     private boolean autoIndexing = false;
     private double autoIndexStartTime = 0;
 
-
-    // Target shooter speed in ticks per second (tune this!)
     private double shooterTargetTPS = 2600.0;
 
-    // Shooter PID state
     private int lastShooterPos = 0;
     private double lastTime = 0;
     private double shooterIntegral = 0;
@@ -58,6 +70,15 @@ public class OmniDriveTeleOp extends OpMode {
 
     private IMU imu;
 
+    // Field-Centric Drive and Heading PID variables
+    private double targetHeading = 0.0;
+    private double heading_kP = 0.02; // Proportional gain for heading correction
+    private double heading_kI = 0.0;     // Integral gain
+    private double heading_kD = 0.001;   // Derivative gain
+    private double headingIntegral = 0.0;
+    private double lastHeadingError = 0.0;
+    private double headingTime = 0.0;
+
 
     @Override
     public void init() {
@@ -66,13 +87,11 @@ public class OmniDriveTeleOp extends OpMode {
         BRwheel = hardwareMap.get(DcMotor.class, "BRwheel");
         BLwheel = hardwareMap.get(DcMotor.class, "BLwheel");
 
-
         shooter1 = hardwareMap.get(DcMotor.class, "shooter_left");
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
         Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
-
 
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
         FRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -88,9 +107,6 @@ public class OmniDriveTeleOp extends OpMode {
         IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         Index.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        // setMode(DcMotor.RunMode.RUN_USING_ENCODER)
-
-        // Enable encoders for shooter PID
         shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Index.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -98,11 +114,11 @@ public class OmniDriveTeleOp extends OpMode {
         shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Index.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        initAprilTag();
 
         lastShooterPos = shooter1.getCurrentPosition();
         lastTime = getRuntime();
 
-        //Imu reading init
         imu = hardwareMap.get(IMU.class, "imu");
 
         IMU.Parameters params = new IMU.Parameters(
@@ -112,32 +128,116 @@ public class OmniDriveTeleOp extends OpMode {
                 )
         );
         imu.initialize(params);
+        imu.resetYaw(); // Reset yaw at the start
+        targetHeading = 0;
+    }
 
+    private void initAprilTag() {
+        aprilTag = new AprilTagProcessor.Builder().build();
+
+        visionPortal = new VisionPortal.Builder()
+            .setCamera(hardwareMap.get(WebcamName.class, "Webcam 1"))
+            .addProcessor(aprilTag)
+            .build();
+    }
+
+    @Override
+    public void stop() {
+        if (visionPortal != null) {
+            visionPortal.close();
+        }
     }
 
     @Override
     public void loop() {
-
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         double headingDeg = orientation.getYaw(AngleUnit.DEGREES);
 
-        // ========== DRIVE CONTROLS ==========
+        // --- Gamepad 1 Controls ---
+
         boolean currentAState = gamepad1.a;
         if (currentAState && !lastAState) {
             reverseControls = !reverseControls;
         }
         lastAState = currentAState;
 
-        double lx = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
-        double ly = applyDeadzone(Math.pow(-gamepad1.left_stick_y, 3));
-        double rx = applyDeadzone(Math.pow(gamepad1.right_stick_x, 3)) * TURN_SCALE;
+        boolean autoAimTrigger = gamepad1.right_trigger > 0.1;
 
-        if (reverseControls) {
-            lx = -lx;
-            ly = -ly;
-            rx = -rx;
+        AprilTagDetection bestTag = null;
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null && (detection.id == 20 || detection.id == 24)) {
+                bestTag = detection;
+                break;
+            }
         }
 
+        double lx, ly, rx; // These will hold the final drive commands
+
+        if (autoAimTrigger && bestTag != null) {
+            // --- Auto-Aim Logic ---
+            autoAimActive = true;
+            double x = bestTag.ftcPose.x;
+            double y = bestTag.ftcPose.y;
+            double yaw = bestTag.ftcPose.yaw;
+
+            double xError = desiredX - x;
+            double yError = desiredY - y;
+            double yawError = desiredYaw - yaw;
+
+            double strafeCmd = (Math.abs(xError) > xTolerance) ? Range.clip(xError * kStrafe, -0.7, 0.7) : 0;
+            double forwardCmd = (Math.abs(yError) > yTolerance) ? Range.clip(yError * kForward, -0.7, 0.7) : 0;
+            double turnCmd = (Math.abs(yawError) > yawTolerance) ? Range.clip(yawError * kTurn, -0.5, 0.5) : 0;
+
+            lx = strafeCmd;
+            ly = forwardCmd;
+            rx = turnCmd;
+
+            telemetry.addData("TagID", bestTag.id);
+            telemetry.addData("PoseX", x);
+            telemetry.addData("PoseY", y);
+            telemetry.addData("PoseYaw", yaw);
+        } else {
+            // --- Manual Driving Logic (with Field-Centric and Heading PID) ---
+            autoAimActive = false;
+            double y_stick = applyDeadzone(Math.pow(-gamepad1.left_stick_y, 3));
+            double x_stick = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
+            double turn_stick = applyDeadzone(Math.pow(gamepad1.right_stick_x, 3)) * TURN_SCALE;
+
+            if (reverseControls) {
+                x_stick = -x_stick;
+                y_stick = -y_stick;
+                turn_stick = -turn_stick;
+            }
+
+            // Rotate the movement vector by the robot's heading
+            double headingRadians = Math.toRadians(headingDeg);
+            ly = y_stick * Math.cos(headingRadians) - x_stick * Math.sin(headingRadians);
+            lx = y_stick * Math.sin(headingRadians) + x_stick * Math.cos(headingRadians);
+            
+
+            // Heading PID Controller
+            if (Math.abs(turn_stick) > DEADZONE) {
+                // Driver is manually turning
+                rx = turn_stick;
+                targetHeading = headingDeg; // Update the target to the current heading
+                headingIntegral = 0; // Reset PID state
+                lastHeadingError = 0;
+            } else {
+                // Driver is not turning, engage PID to hold heading
+                double dt = getRuntime() - headingTime;
+                double error = AngleUnit.normalizeDegrees(targetHeading - headingDeg);
+
+                headingIntegral += error * dt;
+                double derivative = (dt > 0) ? (error - lastHeadingError) / dt : 0;
+
+                rx = (heading_kP * error) + (heading_kI * headingIntegral) + (heading_kD * derivative);
+                lastHeadingError = error;
+            }
+            headingTime = getRuntime();
+        }
+
+        // --- Wheel Power Calculation ---
         double fl = ly + lx + rx;
         double fr = ly - lx - rx;
         double bl = ly - lx + rx;
@@ -155,25 +255,22 @@ public class OmniDriveTeleOp extends OpMode {
         BLwheel.setPower(bl);
         BRwheel.setPower(br);
 
-        //  GAMEPAD buttons
+        // --- Gamepad 2 Controls ---
         boolean shooterActive = (gamepad2.right_trigger > 0.1);
         boolean intakeActive = (gamepad2.left_trigger > 0.1);
         boolean IndexActive = (gamepad2.right_bumper);
         boolean BallsOut = (gamepad2.left_bumper);
-        // distance variable
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
 
         telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
 
-        //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 2600; // Far target
+            shooterTargetTPS = 2600;
         } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 2200; // close target
+            shooterTargetTPS = 2200;
         }
-        shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
+        shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000);
 
-        // BALLS OUT
         if (BallsOut) {
             Index.setPower(IndexPower);
             IntakeMotor.setPower(-IntakePower);
@@ -182,21 +279,16 @@ public class OmniDriveTeleOp extends OpMode {
             IntakeMotor.setPower(stop);
         }
 
-
-
-        //  SHOOTER PID CONTROL
-        // Measure shooter speed
         int currentPos = shooter1.getCurrentPosition();
         double currentTime = getRuntime();
         double dt = currentTime - lastTime;
         double shooterTPS = 0;
 
         if (dt > 0) {
-            shooterTPS = (currentPos - lastShooterPos) / dt; // ticks per second
+            shooterTPS = (currentPos - lastShooterPos) / dt;
         }
 
         if (shooterActive) {
-            // PID on absolute speed so direction sign doesn't matter
             double currentSpeed = Math.abs(shooterTPS);
             double error = shooterTargetTPS - currentSpeed;
 
@@ -205,35 +297,28 @@ public class OmniDriveTeleOp extends OpMode {
 
             double output = kP * error + kI * shooterIntegral + kD * derivative;
 
-            // Shooter power command
             double shooterPower = -Range.clip(output, 0, 1);
 
             shooter1.setPower(shooterPower);
             shooter2.setPower(shooterPower);
 
-
             lastError = error;
         } else {
-            // Shooter off, reset PID state
             shooter1.setPower(0);
             shooter2.setPower(0);
             shooterIntegral = 0;
             lastError = 0;
         }
 
-        // Update last encoder/time for next loop
         lastShooterPos = currentPos;
         lastTime = currentTime;
 
-        // Index
         if (IndexActive) {
             Index.setPower(-IndexPower);
         } else if (!shooterActive && !BallsOut && !intakeActive) {
-            // Only stop here if nothing else is trying to move Index
             Index.setPower(stop);
         }
 
-        // Intake
         if (intakeActive) {
             IntakeMotor.setPower(IntakePower);
         } else if (!BallsOut) {
@@ -242,31 +327,25 @@ public class OmniDriveTeleOp extends OpMode {
 
         double IndexValue = Index.getCurrentPosition();
 
-        //  telemetry to help tune PID
         telemetry.addData("Shooter TPS", shooterTPS);
         telemetry.addData("Target TPS", shooterTargetTPS);
         telemetry.addData("ShooterActive", shooterActive);
         telemetry.addData("IndexEncoder:", IndexValue);
         telemetry.addData("Heading (deg)", "%.1f", headingDeg);
+        telemetry.addData("AutoAim", autoAimActive);
 
-        // Ball detector with timed auto-index
-        // Start auto-indexing when a ball is detected and no other index mode is active
         if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && !IndexActive) {
             autoIndexing = true;
             autoIndexStartTime = getRuntime();
             telemetry.addLine("The Ball Is Inside");
         }
 
-        // If we are in auto-index mode, run the indexer for 1 second
         if (autoIndexing) {
-            // If user starts another index mode, cancel auto-indexing
             if (BallsOut || IndexActive) {
                 autoIndexing = false;
             } else {
-                // Keep indexer running forward
                 Index.setPower(-IndexPower);
 
-                // Stop after 1 second
                 if (getRuntime() - autoIndexStartTime >= 0.3) {
                     Index.setPower(stop);
                     autoIndexing = false;
@@ -275,7 +354,6 @@ public class OmniDriveTeleOp extends OpMode {
         }
 
         telemetry.update();
-
     }
 
     private static double applyDeadzone(double v) {

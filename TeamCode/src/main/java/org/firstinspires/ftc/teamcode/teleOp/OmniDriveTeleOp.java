@@ -167,9 +167,9 @@ public class OmniDriveTeleOp extends OpMode {
 
         //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 2600; // Far target
+            shooterTargetTPS = 2800; // Far target
         } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 2200; // close target
+            shooterTargetTPS = 2400; // close target
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 

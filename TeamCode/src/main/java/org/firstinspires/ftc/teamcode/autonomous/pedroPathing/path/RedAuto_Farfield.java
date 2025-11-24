@@ -32,7 +32,7 @@ public class RedAuto_Farfield extends OpMode {
 
     // shooter pid
     private double kP = 0.000375, kI = 0.0, kD = 0.0;
-    private double shooterTargetTPS = 2400;
+    private double shooterTargetTPS = 2300;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 
@@ -42,6 +42,7 @@ public class RedAuto_Farfield extends OpMode {
 
     @Override
     public void init() {
+
         // telemetry
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
@@ -93,26 +94,26 @@ public class RedAuto_Farfield extends OpMode {
 
             case 1: //shooter run 3 second until the indes is on
                 index.setPower(0);
-                if(currentTime - stateStartTime > 2.0){
+                if(currentTime - stateStartTime > 3.0){
                     autoState = 2;
                 }
                 break;
 
             case 2: // spin up shooter and run indexer for 4 sec
                 index.setPower(-0.4); // run indexer continuously
-                if (currentTime - stateStartTime > 6.0) { // wait 4 sec
-                    autoState = 2; // start pp
+                if (currentTime - stateStartTime > 7.0) { // wait 4 sec
+                    autoState = 3; // start pp
                 }
                 break;
 
             case 3: // start pp
                 follower.followPath(paths.Path1, true);
-                autoState = 3;
+                autoState = 4;
                 break;
 
             case 4: // wait until path finished
                 if (!follower.isBusy()) {
-                    autoState = 4; // done
+                    autoState = 5; // done
                 }
                 break;
 
@@ -171,9 +172,10 @@ public class RedAuto_Farfield extends OpMode {
         public Paths(Follower follower) {
             Path1 = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(89, 12), new Pose(37, 12)))
+                    .addPath(new BezierLine(new Pose(89, 12), new Pose(57, 12)))
                     .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
         }
+
     }
 }

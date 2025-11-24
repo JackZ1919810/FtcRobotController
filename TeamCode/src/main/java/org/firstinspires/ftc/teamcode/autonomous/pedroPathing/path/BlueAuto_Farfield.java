@@ -32,7 +32,7 @@ public class BlueAuto_Farfield extends OpMode {
 
     // shooter pid
     private double kP = 0.000375, kI = 0.0, kD = 0.0;
-    private double shooterTargetTPS = 2400;
+    private double shooterTargetTPS = 2300;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 
@@ -94,14 +94,14 @@ public class BlueAuto_Farfield extends OpMode {
 
             case 1: //shooter run 3 second until the indes is on
                 index.setPower(0);
-                if(currentTime - stateStartTime > 2.0){
+                if(currentTime - stateStartTime > 3.0){
                     autoState = 2;
                 }
                 break;
 
             case 2: // spin up shooter and run indexer for 4 sec
                 index.setPower(-0.4); // run indexer continuously
-                if (currentTime - stateStartTime > 6.0) { // wait 4 sec
+                if (currentTime - stateStartTime > 7.0) { // wait 4 sec
                     autoState = 3; // start pp
                 }
                 break;
@@ -172,7 +172,7 @@ public class BlueAuto_Farfield extends OpMode {
         public Paths(Follower follower) {
             Path1 = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(55, 12), new Pose(110, 12)))
+                    .addPath(new BezierLine(new Pose(55, 12), new Pose(85, 12)))
                     .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
                     .build();
         }

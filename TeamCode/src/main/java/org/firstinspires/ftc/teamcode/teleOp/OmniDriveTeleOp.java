@@ -265,15 +265,13 @@ public class OmniDriveTeleOp extends OpMode {
         telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
 
         if (gamepad2.dpad_up) {
-<<<<<<< HEAD
             shooterTargetTPS = 2800; // Far target
         } else if (gamepad2.dpad_down) {
             shooterTargetTPS = 2400; // close target
-=======
+
             shooterTargetTPS = 2600;
         } else if (gamepad2.dpad_down) {
             shooterTargetTPS = 2200;
->>>>>>> 3fccb5ac6d82b794a0a23b7b71aa55dcfae4c40d
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000);
 

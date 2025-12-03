@@ -14,6 +14,14 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+
+// Limelight imports
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
@@ -26,11 +34,12 @@ public class OmniDriveTeleOp extends OpMode {
     private DcMotor Index;
     private DistanceSensor Distance;
 
+    // Limelight
+    private Limelight3A limelight;
+
     private DigitalChannel Mag_Switch;
 
     private boolean limitSwitchState;
-    private boolean indexDelayActive;
-    private double indexDelayStart;
     private static final double DEADZONE = 0.09;
     private static final double TURN_SCALE = 0.7;
 
@@ -66,6 +75,8 @@ public class OmniDriveTeleOp extends OpMode {
     private boolean lastAState = false;
 
     private IMU imu;
+
+    private boolean autoAimActive = false;
 
 
     @Override
@@ -124,6 +135,7 @@ public class OmniDriveTeleOp extends OpMode {
                 )
         );
         imu.initialize(params);
+
 
     }
 

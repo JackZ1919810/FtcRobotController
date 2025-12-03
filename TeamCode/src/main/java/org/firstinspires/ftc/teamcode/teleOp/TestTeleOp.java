@@ -1,23 +1,29 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
-import static java.lang.Thread.sleep;
-
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.util.Range;
+
 
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+
+// Limelight imports
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
-import java.util.Base64;
 
 @TeleOp
 public class TestTeleOp extends OpMode {
@@ -27,36 +33,50 @@ public class TestTeleOp extends OpMode {
     private DcMotor IntakeMotor;
     private DcMotor Index;
     private DistanceSensor Distance;
+
+    // Limelight
+    private Limelight3A limelight;
+
+    private DigitalChannel Mag_Switch;
+
+    private boolean limitSwitchState;
     private static final double DEADZONE = 0.09;
     private static final double TURN_SCALE = 0.7;
 
     // Shooter PID constants (start with these and tune)
-    private double kP = 0.0004;
+    private double kP = 0.0055;
     private double kI = 0.0000;
-    private double kD = 0.0000;
+    private double kD = 0.0050;
 
     // Auto index (distance-based) state
     private boolean autoIndexing = false;
+    private int indexActive = 0;
+
+    private int ballCount = 0;
     private double autoIndexStartTime = 0;
 
 
     // Target shooter speed in ticks per second (tune this!)
-    private double shooterTargetTPS = 2600.0;
+    private double shooterTargetTPS = 1000.0;
 
     // Shooter PID state
     private int lastShooterPos = 0;
     private double lastTime = 0;
     private double shooterIntegral = 0;
     private double lastError = 0;
+    private double startTime = 0;
+    private int shooterLoopTimes = 0;
 
     private double IntakePower =  1;
-    private double IndexPower = 0.24;
+    private double IndexPower = 0.30;
     private double stop = 0;
 
     private boolean reverseControls = false;
     private boolean lastAState = false;
 
     private IMU imu;
+
+    private boolean autoAimActive = false;
 
 
     @Override
@@ -72,6 +92,9 @@ public class TestTeleOp extends OpMode {
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
         Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
+
+        Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
+        Mag_Switch.setMode(DigitalChannel.Mode.INPUT);
 
 
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -113,10 +136,14 @@ public class TestTeleOp extends OpMode {
         );
         imu.initialize(params);
 
+
     }
 
     @Override
     public void loop() {
+
+        //get states
+        limitSwitchState = !Mag_Switch.getState();
 
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         double headingDeg = orientation.getYaw(AngleUnit.DEGREES);
@@ -158,20 +185,22 @@ public class TestTeleOp extends OpMode {
 //  GAMEPAD buttons
         boolean shooterActive = (gamepad2.right_trigger > 0.1);
         boolean intakeActive = (gamepad2.left_trigger > 0.1);
-        boolean IndexActive = (gamepad2.right_bumper);
         boolean BallsOut = (gamepad2.left_bumper);
-// distance variable
+
+        //Index Gamepad logic
+        if(gamepad2.a){
+            indexActive = 1;
+        }
+
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
 
         telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
 
 //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 2600; // Far target
-            shooterTargetTPS = 2800; // Far target
+            shooterTargetTPS = 1100; // Far target
         } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 2200; // close target
-            shooterTargetTPS = 2400; // close target
+            shooterTargetTPS = 1000; // close target
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 
@@ -188,18 +217,22 @@ public class TestTeleOp extends OpMode {
 
 //  SHOOTER PID CONTROL
 // Measure shooter speed
-        int currentPos = shooter1.getCurrentPosition();
+        int currentPos = shooter2.getCurrentPosition();
         double currentTime = getRuntime();
         double dt = currentTime - lastTime;
         double shooterTPS = 0;
+
 
         if (dt > 0) {
             shooterTPS = (currentPos - lastShooterPos) / dt; // ticks per second
         }
 
-        if (shooterActive) {
-// PID on absolute speed so direction sign doesn't matter
-            double currentSpeed = Math.abs(shooterTPS);
+        if (shooterActive && !BallsOut) {
+
+            if (shooterLoopTimes == 0){
+                startTime = getRuntime();
+            }
+            double currentSpeed = Math.abs(shooterTPS); // PID on absolute speed so direction sign doesn't matter
             double error = shooterTargetTPS - currentSpeed;
 
             shooterIntegral += error * dt;
@@ -208,15 +241,25 @@ public class TestTeleOp extends OpMode {
             double output = kP * error + kI * shooterIntegral + kD * derivative;
 
 // Shooter power command
-            double shooterPower = -Range.clip(output, 0, 1);
+            double shooterPower = -Range.clip(-output, -1, 0);
 
             shooter1.setPower(shooterPower);
             shooter2.setPower(shooterPower);
 
+            telemetry.addData("shooter run time", getRuntime()-startTime);
+
+            if (getRuntime()-startTime >= 1.0){
+                IndexPower = 0.5;
+                Index.setPower(-IndexPower);
+            }
 
             lastError = error;
-        } else {
+            shooterLoopTimes = shooterLoopTimes + 1;
+        }
+        else if (!shooterActive){
 // Shooter off, reset PID state
+            IndexPower = 0.3;
+            shooterLoopTimes = 0;
             shooter1.setPower(0);
             shooter2.setPower(0);
             shooterIntegral = 0;
@@ -228,11 +271,19 @@ public class TestTeleOp extends OpMode {
         lastTime = currentTime;
 
 // Index
-        if (IndexActive) {
-            Index.setPower(-IndexPower);
-        } else if (!shooterActive && !BallsOut && !intakeActive) {
+        if (indexActive == 1 && !BallsOut && !shooterActive) {
+            if (!limitSwitchState){
+                Index.setPower(-IndexPower);
+            }
+            else{
+                Index.setPower(stop);
+                indexActive = 0;
+            }
+        }
+        else if (!shooterActive && !BallsOut && indexActive != 1) {
 // Only stop here if nothing else is trying to move Index
             Index.setPower(stop);
+            indexActive = 0;
         }
 
 // Intake
@@ -250,31 +301,37 @@ public class TestTeleOp extends OpMode {
         telemetry.addData("ShooterActive", shooterActive);
         telemetry.addData("IndexEncoder:", IndexValue);
         telemetry.addData("Heading (deg)", "%.1f", headingDeg);
+        telemetry.addData("Magnetic switch state:", limitSwitchState);
+        telemetry.addData("Index State:", indexActive);
 
 // Ball detector with timed auto-index
 // Start auto-indexing when a ball is detected and no other index mode is active
-        if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && !IndexActive) {
+        if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && indexActive != 1){
+            ballCount = ballCount + 1;
             autoIndexing = true;
             autoIndexStartTime = getRuntime();
             telemetry.addLine("The Ball Is Inside");
         }
 
 // If we are in auto-index mode, run the indexer for 1 second
-        if (autoIndexing) {
-// If user starts another index mode, cancel auto-indexing
-            if (BallsOut || IndexActive) {
-                autoIndexing = false;
-            } else {
-// Keep indexer running forward
-                Index.setPower(-IndexPower);
+    /*    if (autoIndexing) { // If user starts another index mode, cancel auto-indexing
 
-// Stop after 1 second
-                if (getRuntime() - autoIndexStartTime >= 0.3) {
+            if (!limitSwitchState){  // Keep indexer running forward
+                if (ballCount % 2 != 0) {
+                    //Index.setPower(-IndexPower);
+                }
+                else{
                     Index.setPower(stop);
                     autoIndexing = false;
                 }
             }
-        }
+            else if (limitSwitchState){
+                    Index.setPower(stop);
+                    autoIndexing = false;
+            }
+
+    }*/
+
 
         telemetry.update();
 

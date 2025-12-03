@@ -237,6 +237,7 @@ public class OmniDriveTeleOp extends OpMode {
             telemetry.addData("shooter run time", getRuntime()-startTime);
 
             if (getRuntime()-startTime >= 1.0){
+                IndexPower = 0.5;
                 Index.setPower(-IndexPower);
             }
 
@@ -245,6 +246,7 @@ public class OmniDriveTeleOp extends OpMode {
         }
         else if (!shooterActive){
 // Shooter off, reset PID state
+            IndexPower = 0.3;
             shooterLoopTimes = 0;
             shooter1.setPower(0);
             shooter2.setPower(0);

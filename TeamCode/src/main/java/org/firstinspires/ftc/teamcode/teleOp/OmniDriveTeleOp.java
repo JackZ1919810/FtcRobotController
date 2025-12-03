@@ -271,7 +271,7 @@ public class OmniDriveTeleOp extends OpMode {
         lastTime = currentTime;
 
 // Index
-      if (indexActive == 1 && !BallsOut && !shooterActive) {
+        if (indexActive == 1 && !BallsOut && !shooterActive) {
             if (!limitSwitchState){
                 Index.setPower(-IndexPower);
             }

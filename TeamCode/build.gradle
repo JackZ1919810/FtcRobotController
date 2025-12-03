@@ -25,7 +25,4 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
-    implementation 'org.firstinspires.ftc:RobotCore:9.0.0'
-    implementation 'org.firstinspires.ftc:Hardware:9.0.0'
-
 }

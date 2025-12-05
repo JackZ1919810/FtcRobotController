@@ -16,19 +16,18 @@ public class centric extends LinearOpMode {
     // differences between them can be read here in the docs:
     // https://docs.ftclib.org/ftclib/features/drivebases#control-scheme
     static final boolean FIELD_CENTRIC = false;
-    private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
+    private Motor FRwheel, FLwheel, BRwheel, BLwheel;
 
 
     @Override
     public void runOpMode() throws InterruptedException {
+        BRwheel = hardwareMap.get(Motor.class, "BRwheel");
+        BLwheel = hardwareMap.get(Motor.class, "BLwheel");
+        FRwheel = hardwareMap.get(Motor.class, "FRwheel");
+        FLwheel = hardwareMap.get(Motor.class, "FLwheel");
         // constructor takes in frontLeft, frontRight, backLeft, backRight motors
         // IN THAT ORDER
-        MecanumDrive drive = new MecanumDrive(
-                BRwheel = hardwareMap.get(DcMotor.class, "BRwheel");
-                BLwheel = hardwareMap.get(DcMotor.class, "BLwheel");
-                FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
-                FLwheel = hardwareMap.get(DcMotor.class, "FLwheel");
-        );
+        MecanumDrive drive = new MecanumDrive(BRwheel, BLwheel, FRwheel, FLwheel);
 
         // This is the built-in IMU in the REV hub.
         // We're initializing it by its default parameters

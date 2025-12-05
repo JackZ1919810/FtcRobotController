@@ -14,19 +14,15 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
-
 // Limelight imports
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.limelightvision.LLResult;
-import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
+import org.firstinspires.ftc.teamcode.TestFile.AprilTag;
+
 @TeleOp
-public class TestTeleOp extends OpMode {
+public class realTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
     private DcMotor shooter1, shooter2;

@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.teleOp;
-
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -14,12 +13,15 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+
 // Limelight imports
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
-import org.firstinspires.ftc.teamcode.TestFile.AprilTag;
 
 @TeleOp
 public class realTeleOp extends OpMode {
@@ -39,9 +41,10 @@ public class realTeleOp extends OpMode {
     private static final double DEADZONE = 0.09;
     private static final double TURN_SCALE = 0.7;
 
-    // Shooter PID constants (start with these and tune)
+// Shooter PID constants (start with these and tune)
     private double kP = 0.0055;
     private double kI = 0.0000;
+
     private double kD = 0.0050;
 
     // Auto index (distance-based) state
@@ -52,7 +55,7 @@ public class realTeleOp extends OpMode {
     private double autoIndexStartTime = 0;
 
 
-    // Target shooter speed in ticks per second (tune this!)
+// Target shooter speed in ticks per second (tune this!)
     private double shooterTargetTPS = 1000.0;
 
     // Shooter PID state
@@ -64,6 +67,7 @@ public class realTeleOp extends OpMode {
     private int shooterLoopTimes = 0;
 
     private double IntakePower =  1;
+
     private double IndexPower = 0.30;
     private double stop = 0;
 
@@ -143,7 +147,6 @@ public class realTeleOp extends OpMode {
 
         YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
         double headingDeg = orientation.getYaw(AngleUnit.DEGREES);
-
 // ========== DRIVE CONTROLS ==========
         boolean currentAState = gamepad1.a;
         if (currentAState && !lastAState) {
@@ -183,7 +186,6 @@ public class realTeleOp extends OpMode {
         boolean intakeActive = (gamepad2.left_trigger > 0.1);
         boolean BallsOut = (gamepad2.left_bumper);
 
-        //Index Gamepad logic
         if(gamepad2.a){
             indexActive = 1;
         }
@@ -222,7 +224,6 @@ public class realTeleOp extends OpMode {
         if (dt > 0) {
             shooterTPS = (currentPos - lastShooterPos) / dt; // ticks per second
         }
-
         if (shooterActive && !BallsOut) {
 
             if (shooterLoopTimes == 0){
@@ -308,26 +309,6 @@ public class realTeleOp extends OpMode {
             autoIndexStartTime = getRuntime();
             telemetry.addLine("The Ball Is Inside");
         }
-
-// If we are in auto-index mode, run the indexer for 1 second
-    /*    if (autoIndexing) { // If user starts another index mode, cancel auto-indexing
-
-            if (!limitSwitchState){  // Keep indexer running forward
-                if (ballCount % 2 != 0) {
-                    //Index.setPower(-IndexPower);
-                }
-                else{
-                    Index.setPower(stop);
-                    autoIndexing = false;
-                }
-            }
-            else if (limitSwitchState){
-                    Index.setPower(stop);
-                    autoIndexing = false;
-            }
-
-    }*/
-
 
         telemetry.update();
 

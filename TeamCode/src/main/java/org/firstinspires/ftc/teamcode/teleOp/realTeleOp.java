@@ -17,7 +17,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 
-import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
 
 // Limelight imports
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -154,6 +153,10 @@ public class realTeleOp extends OpMode {
         limelight.pipelineSwitch(0);
         limelight.start();
 
+    }
+
+    public void stop(){
+        limelight.stop();
     }
 
     @Override
@@ -296,7 +299,7 @@ public class realTeleOp extends OpMode {
 // BALLS OUT
         if (BallsOut) {
             Index.setPower(IndexPower);
-            IntakeMotor.setPower(-IntakePower);
+            IntakeMotor.setPower(-0.5);
         } else {
             Index.setPower(stop);
             IntakeMotor.setPower(stop);
@@ -383,8 +386,9 @@ public class realTeleOp extends OpMode {
 
 // Intake
         if (intakeActive) {
-            IntakeMotor.setPower(IntakePower);
-        } else if (!BallsOut) {
+            IntakeMotor.setPower(1);
+        }
+        else if (!BallsOut) {
             IntakeMotor.setPower(stop);
         }
 

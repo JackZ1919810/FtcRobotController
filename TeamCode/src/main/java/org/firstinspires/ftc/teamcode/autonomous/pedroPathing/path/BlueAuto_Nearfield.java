@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constant
 
 @Autonomous
 @Configurable
-public class RedAuto_Farfield extends OpMode {
+public class BlueAuto_Nearfield extends OpMode {
 
     // hardware
     private DcMotor shooter1, shooter2, index;
@@ -31,8 +31,9 @@ public class RedAuto_Farfield extends OpMode {
     private int pathState = 0;
 
     // shooter pid
-    private double kP = 0.000375, kI = 0.0, kD = 0.0;
-    private double shooterTargetTPS = 2300;
+    private double kP = 0.003, kI = 0.0015, kD = 0.0;
+    private double shooterTargetTPS = 2800;
+    private double NearShooterTargetTPS = 2300;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 
@@ -67,7 +68,7 @@ public class RedAuto_Farfield extends OpMode {
 
         // pp
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(67.5)));
+        follower.setStartingPose(new Pose(72, 8, Math.toRadians(112.5)));
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -87,46 +88,41 @@ public class RedAuto_Farfield extends OpMode {
         // state machine
         switch (autoState) {
 
-            case 0: // start shooter, wait 2 sec before indexer runs
+            case 0:
                 stateStartTime = currentTime;
                 autoState = 1;
                 break;
 
-            case 1: //shooter run 3 second until the index is on
-                index.setPower(0);
-                if(currentTime - stateStartTime > 3.0){
-                    autoState = 2;
-                }
-                break;
 
-            case 2: // spin up shooter and run indexer for 4 sec
-                index.setPower(-0.4); // run indexer continuously
-                if (currentTime - stateStartTime > 7.0) { // wait 4 sec
-                    autoState = 3; // start pp
-                }
-                break;
-
-            case 3: // start pp
+            case 1: // start pp
                 follower.followPath(paths.Path1, true);
-                autoState = 4;
+                autoState = 2;
+                break;
+            case 2: // start pp
+                follower.followPath(paths.Path1, true);
+                autoState = 3;
                 break;
 
-            case 4: // wait until path finished
-                if (!follower.isBusy()) {
-                    autoState = 5; // done
+            case 3:
+                shooter1.setPower(NearShooterTargetTPS);
+                shooter2.setPower(NearShooterTargetTPS);
+
+                if (currentTime - stateStartTime > 3) {
+                    autoState = 4; // start pp
                 }
                 break;
-            case 5: // start pp
-                follower.followPath(paths.Path2, true);
-                autoState = 6;
-                break;
-            case 6: // wait until path finished
-                if (!follower.isBusy()) {
-                    autoState = 7; // done
+            case 5: // spin up shooter and run indexer for 4 sec
+                index.setPower(-0.4); // run indexer continuously
+                shooter1.setPower(NearShooterTargetTPS);
+                shooter2.setPower(NearShooterTargetTPS);
+                if (currentTime - stateStartTime > 8) {
+                    autoState = 6; // start pp
                 }
                 break;
 
-            case 7: // stop everything
+
+
+            case 6: // stop everything
                 shooter1.setPower(0);
                 shooter2.setPower(0);
                 index.setPower(0);
@@ -177,20 +173,14 @@ public class RedAuto_Farfield extends OpMode {
     // paths
     public static class Paths {
         public PathChain Path1;
-        public PathChain Path2;
 
         public Paths(Follower follower) {
             Path1 = follower
                     .pathBuilder()
-                    .addPath(new BezierLine(new Pose(89, 12), new Pose(57, 12)))
-                    .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
-                    .build();
-            Path2 = follower
-                    .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(57.000, 12.000), new Pose(22.430, 36.112))
+                            new BezierLine(new Pose(21.308, 123.589), new Pose(69.981, 73.794))
                     )
-                    .setTangentHeadingInterpolation()
+                    .setLinearHeadingInterpolation(Math.toRadians(-138), Math.toRadians(135))
                     .build();
         }
 

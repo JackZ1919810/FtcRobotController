@@ -73,7 +73,7 @@ public class Constants {
             .strafeEncoderDirection(Encoder.REVERSE)
             .IMU_HardwareMapName("imu")
             .IMU_Orientation(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                    RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
+                    RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
 
     //Path constraints (behaviour setup, eg, when to stop in a path)
     public static PathConstraints pathConstraints = new PathConstraints(0.99,

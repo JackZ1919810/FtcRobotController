@@ -68,7 +68,7 @@ public class BlueAuto_Nearfield extends OpMode {
 
         // pp
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(72, 8, Math.toRadians(112.5)));
+        follower.setStartingPose(new Pose(21.308, 123.589, Math.toRadians(-138)));
         paths = new Paths(follower);
 
         panelsTelemetry.debug("Status", "Initialized");
@@ -98,9 +98,11 @@ public class BlueAuto_Nearfield extends OpMode {
                 follower.followPath(paths.Path1, true);
                 autoState = 2;
                 break;
-            case 2: // start pp
-                follower.followPath(paths.Path1, true);
-                autoState = 3;
+            
+            case 2: // wait until path finished
+                if (!follower.isBusy()) {
+                    autoState = 3; // done
+                }
                 break;
 
             case 3:
@@ -178,9 +180,9 @@ public class BlueAuto_Nearfield extends OpMode {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(21.308, 123.589), new Pose(69.981, 73.794))
+                            new BezierLine(new Pose(21.308, 122.100), new Pose(69.981, 73.794))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(-138), Math.toRadians(135))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(-50))
                     .build();
         }
 

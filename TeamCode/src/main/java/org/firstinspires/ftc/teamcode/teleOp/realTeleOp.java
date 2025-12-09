@@ -68,7 +68,7 @@ public class realTeleOp extends OpMode {
 
 
     // Target shooter speed in ticks per second (tune this!)
-    private double shooterTargetTPS = 1000.0;
+    private double shooterTargetTPS = 1100.0;
 
     // Shooter PID state
     private int lastShooterPos = 0;
@@ -155,10 +155,6 @@ public class realTeleOp extends OpMode {
 
     }
 
-    public void stop(){
-        limelight.stop();
-    }
-
     @Override
     public void loop() {
 
@@ -199,9 +195,9 @@ public class realTeleOp extends OpMode {
 
 //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 1150; // Far target
+            shooterTargetTPS = 1100; // Far target
         } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 1000; // close target
+            shooterTargetTPS = 950; // close target
         }
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 
@@ -299,7 +295,7 @@ public class realTeleOp extends OpMode {
 // BALLS OUT
         if (BallsOut) {
             Index.setPower(IndexPower);
-            IntakeMotor.setPower(-0.5);
+            IntakeMotor.setPower(-1);
         } else {
             Index.setPower(stop);
             IntakeMotor.setPower(stop);
@@ -342,7 +338,7 @@ public class realTeleOp extends OpMode {
 
             telemetry.addData("shooter run time", getRuntime()-startTime);
 
-            if (getRuntime()-startTime >= 1){
+            if (getRuntime()-startTime >= 1.5){
                 IndexPower = 0.5;
                 Index.setPower(-IndexPower);
             }

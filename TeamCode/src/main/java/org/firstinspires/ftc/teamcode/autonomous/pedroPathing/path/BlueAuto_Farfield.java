@@ -31,8 +31,8 @@ public class BlueAuto_Farfield extends OpMode {
     private int pathState = 0;
 
     // shooter pid
-    private double kP = 0.000375, kI = 0.0, kD = 0.0;
-    private double shooterTargetTPS = 2300;
+    private double kP = 0.003, kI = 0.0015, kD = 0.0;
+    private double shooterTargetTPS = 1100;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 

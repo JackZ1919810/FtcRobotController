@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.teleOp;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
@@ -24,6 +25,7 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
 
 import java.util.List;
 
+@Disabled
 @TeleOp(name = "TeleOp ", group = "TeleOp")
 public class OmniDriveTeleOp extends OpMode {
 

@@ -11,8 +11,11 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constants;
 
 @Autonomous
@@ -21,7 +24,23 @@ public class BlueAuto_Nearfield extends OpMode {
 
     // hardware
     private DcMotor shooter1, shooter2, index;
+    private DistanceSensor Distance;
+
     public Follower follower;
+    private DcMotor IntakeMotor;
+
+    private DigitalChannel Mag_Switch;
+
+    private boolean limitSwitchState;
+    private int ballCount = 0;
+
+    // intake
+    private double IntakePower =  1;
+
+    //index
+    private double autoIndexStartTime = 0;
+    private boolean autoIndexing = false;
+    private int indexActive = 0;
 
     // telemetry
     private TelemetryManager panelsTelemetry;
@@ -41,6 +60,7 @@ public class BlueAuto_Nearfield extends OpMode {
     private int autoState = 0;
     private double stateStartTime = 0;
 
+
     @Override
     public void init() {
 
@@ -51,12 +71,21 @@ public class BlueAuto_Nearfield extends OpMode {
         shooter1 = hardwareMap.get(DcMotor.class, "shooter_left");
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         index = hardwareMap.get(DcMotor.class, "Index");
+        Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
+        IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
+
+
+        Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
+        Mag_Switch.setMode(DigitalChannel.Mode.INPUT);
+
 
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
 
         shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         index.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
 
         shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -78,6 +107,16 @@ public class BlueAuto_Nearfield extends OpMode {
     @Override
     public void loop() {
         double currentTime = getRuntime();
+        limitSwitchState = !Mag_Switch.getState();
+        double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
+        if (DistanceOn < 2.4 && !autoIndexing  && indexActive != 1){
+            ballCount = ballCount + 1;
+            autoIndexing = true;
+            autoIndexStartTime = getRuntime();
+            telemetry.addLine("The Ball Is Inside");
+        }
+
+
 
         // shooter pid run continuously
         double shooterTPS = getShooterTPS();
@@ -99,10 +138,10 @@ public class BlueAuto_Nearfield extends OpMode {
                 autoState = 2;
                 break;
 
-            case 2: // start pp
-                follower.followPath(paths.Path1, true);
-                autoState = 3;
-                break;
+            case 2: // wait until path finished
+                if (!follower.isBusy()) {
+                    autoState = 3; // done
+                }
             case 3:
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
@@ -119,11 +158,26 @@ public class BlueAuto_Nearfield extends OpMode {
                     autoState = 5; // start pp
                 }
                 break;
+            case 5: // start pp
+                follower.followPath(paths.Path2, true);
+                autoState = 6;
+            case 6: // wait until path finished
+                if (!follower.isBusy()) {
+                    autoState = 7; // done
+                }
+            case 7:
+                IntakeMotor.setPower(IntakePower);
+                follower.followPath(paths.Path3, true);
 
+                if (currentTime - stateStartTime > 13) {
+                    autoState = 8;
+                }
+            case 8:
+                if (!follower.isBusy()) {
+                    autoState = 9;
+                }
 
-
-
-            case 8: // stop everything
+            case 9: // stop everything
                 shooter1.setPower(0);
                 shooter2.setPower(0);
                 index.setPower(0);
@@ -175,6 +229,8 @@ public class BlueAuto_Nearfield extends OpMode {
     public static class Paths {
         public PathChain Path1;
         public PathChain Path2;
+        public PathChain Path3;
+
 
 
         public Paths(Follower follower) {
@@ -192,6 +248,13 @@ public class BlueAuto_Nearfield extends OpMode {
                             new BezierLine(new Pose(69.981, 73.794), new Pose(37.009, 83.664))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(1))
+                    .build();
+            Path3 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(37.009, 83.664), new Pose(5.832, 83.664))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(1), Math.toRadians(1))
                     .build();
         }
 

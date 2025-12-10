@@ -78,7 +78,7 @@ public class realTeleOp extends OpMode {
     private double startTime = 0;
     private int shooterLoopTimes = 0;
 
-    private double IntakePower =  1;
+    private double IntakePower = 1;
     private double IndexPower = 0.24;
     private double stop = 0;
 

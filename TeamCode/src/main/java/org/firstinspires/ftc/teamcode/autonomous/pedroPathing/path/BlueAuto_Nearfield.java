@@ -32,8 +32,8 @@ public class BlueAuto_Nearfield extends OpMode {
 
     // shooter pid
     private double kP = 0.003, kI = 0.0015, kD = 0.0;
-    private double shooterTargetTPS = 2800;
-    private double NearShooterTargetTPS = 2300;
+    private double shooterTargetTPS = 1100;
+    private double NearShooterTargetTPS = 950;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 
@@ -98,13 +98,11 @@ public class BlueAuto_Nearfield extends OpMode {
                 follower.followPath(paths.Path1, true);
                 autoState = 2;
                 break;
-            
-            case 2: // wait until path finished
-                if (!follower.isBusy()) {
-                    autoState = 3; // done
-                }
-                break;
 
+            case 2: // start pp
+                follower.followPath(paths.Path1, true);
+                autoState = 3;
+                break;
             case 3:
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
@@ -113,18 +111,19 @@ public class BlueAuto_Nearfield extends OpMode {
                     autoState = 4; // start pp
                 }
                 break;
-            case 5: // spin up shooter and run indexer for 4 sec
+            case 4: // spin up shooter and run indexer for 4 sec
                 index.setPower(-0.4); // run indexer continuously
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
                 if (currentTime - stateStartTime > 8) {
-                    autoState = 6; // start pp
+                    autoState = 5; // start pp
                 }
                 break;
 
 
 
-            case 6: // stop everything
+
+            case 8: // stop everything
                 shooter1.setPower(0);
                 shooter2.setPower(0);
                 index.setPower(0);
@@ -175,14 +174,24 @@ public class BlueAuto_Nearfield extends OpMode {
     // paths
     public static class Paths {
         public PathChain Path1;
+        public PathChain Path2;
+
 
         public Paths(Follower follower) {
+
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(21.308, 122.100), new Pose(69.981, 73.794))
+                            new BezierLine(new Pose(21.308, 124.037), new Pose(69.981, 73.794))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(-50))
+                    .setLinearHeadingInterpolation(Math.toRadians(145), Math.toRadians(135))
+                    .build();
+            Path2 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(69.981, 73.794), new Pose(37.009, 83.664))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(1))
                     .build();
         }
 

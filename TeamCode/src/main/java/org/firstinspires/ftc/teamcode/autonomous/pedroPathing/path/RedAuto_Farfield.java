@@ -31,8 +31,8 @@ public class RedAuto_Farfield extends OpMode {
     private int pathState = 0;
 
     // shooter pid
-    private double kP = 0.000375, kI = 0.0, kD = 0.0;
-    private double shooterTargetTPS = 2300;
+    private double kP = 0.003, kI = 0.0015, kD = 0.0;
+    private double shooterTargetTPS = 1100;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 
@@ -100,7 +100,7 @@ public class RedAuto_Farfield extends OpMode {
                 break;
 
             case 2: // spin up shooter and run indexer for 4 sec
-                index.setPower(-0.4); // run indexer continuously
+                index.setPower(-0.5); // run indexer continuously
                 if (currentTime - stateStartTime > 7.0) { // wait 4 sec
                     autoState = 3; // start pp
                 }
@@ -116,17 +116,8 @@ public class RedAuto_Farfield extends OpMode {
                     autoState = 5; // done
                 }
                 break;
-            case 5: // start pp
-                follower.followPath(paths.Path2, true);
-                autoState = 6;
-                break;
-            case 6: // wait until path finished
-                if (!follower.isBusy()) {
-                    autoState = 7; // done
-                }
-                break;
 
-            case 7: // stop everything
+            case 5: // stop everything
                 shooter1.setPower(0);
                 shooter2.setPower(0);
                 index.setPower(0);
@@ -177,20 +168,12 @@ public class RedAuto_Farfield extends OpMode {
     // paths
     public static class Paths {
         public PathChain Path1;
-        public PathChain Path2;
 
         public Paths(Follower follower) {
             Path1 = follower
                     .pathBuilder()
                     .addPath(new BezierLine(new Pose(89, 12), new Pose(57, 12)))
                     .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
-                    .build();
-            Path2 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(57.000, 12.000), new Pose(22.430, 36.112))
-                    )
-                    .setTangentHeadingInterpolation()
                     .build();
         }
 

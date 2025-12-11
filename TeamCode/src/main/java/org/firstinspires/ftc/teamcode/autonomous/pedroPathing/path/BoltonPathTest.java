@@ -21,6 +21,8 @@ public class BoltonPathTest extends OpMode {
     private int pathState; // Current autonomous path state (state machine)
     private Paths paths; // Paths defined in the Paths class
 
+    private double stateStartTime;
+
     @Override
     public void init() {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
@@ -36,81 +38,16 @@ public class BoltonPathTest extends OpMode {
 
     @Override
     public void loop() {
+
         follower.update(); // Update Pedro Pathing
-        pathState = autonomousPathUpdate(); // Update autonomous state machine
-
-        // Log values to Panels and Driver Station
-        panelsTelemetry.debug("Path State", pathState);
-        panelsTelemetry.debug("X", follower.getPose().getX());
-        panelsTelemetry.debug("Y", follower.getPose().getY());
-        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
-        panelsTelemetry.update(telemetry);
-    }
-
-    public static class Paths {
-
-        public PathChain Path1;
-        public PathChain Path3;
-        public PathChain Path4;
-        public PathChain Path6;
-        public PathChain Path7;
-
-        public Paths(Follower follower) {
-            Path1 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(85.000, 12.000), new Pose(85.000, 7.000))
-                    )
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(90),
-                            Math.toRadians(112.5)
-                    )
-                    .build();
-
-            Path3 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(85.000, 7.000), new Pose(85.000, -24.500))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
-                    .build();
-
-            Path4 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(85.000, -24.500), new Pose(105.000, -24.500))
-                    )
-                    .setConstantHeadingInterpolation(Math.toRadians(0))
-                    .build();
-
-            Path6 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(115.000, -24.500), new Pose(85.000, 7.000))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
-                    .build();
-
-            Path7 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(85.000,7.000), new Pose(105.000, 7.000))
-                    )
-                    .setLinearHeadingInterpolation(
-                            Math.toRadians(112.5),
-                            Math.toRadians(90)
-                    )
-                    .build();
-        }
-    }
-
-    public int autonomousPathUpdate() {
+        double currentTime = getRuntime();
 
         switch (pathState) {
 
             // ---- Path 1 ----
             case 0:
                 // Start Path1 once (with reset = true if you want to snap to starting pose)
+                stateStartTime = currentTime;
                 follower.followPath(paths.Path1, true);
                 pathState = 1;
                 break;
@@ -124,7 +61,7 @@ public class BoltonPathTest extends OpMode {
 
             // ---- Path 3 ----
             case 2:
-                follower.followPath(paths.Path3, false);
+                follower.followPath(paths.Path2, false);
                 pathState = 3;
                 break;
 
@@ -136,7 +73,7 @@ public class BoltonPathTest extends OpMode {
 
             // ---- Path 4 ----
             case 4:
-                follower.followPath(paths.Path4, false);
+                follower.followPath(paths.Path3, false);
                 pathState = 5;
                 break;
 
@@ -148,7 +85,7 @@ public class BoltonPathTest extends OpMode {
 
             // ---- Path 6 ----
             case 6:
-                follower.followPath(paths.Path6, false);
+                follower.followPath(paths.Path4, false);
                 pathState = 7;
                 break;
 
@@ -160,7 +97,7 @@ public class BoltonPathTest extends OpMode {
 
             // ---- Path 7 ----
             case 8:
-                follower.followPath(paths.Path7, false);
+                follower.followPath(paths.Path5, false);
                 pathState = 9;
                 break;
 
@@ -177,6 +114,76 @@ public class BoltonPathTest extends OpMode {
                 // Do nothing; robot just holds the final pose.
                 break;
         }
+
+        pathState = autonomousPathUpdate(); // Update autonomous state machine
+
+        // Log values to Panels and Driver Station
+        panelsTelemetry.debug("Path State", pathState);
+        panelsTelemetry.debug("X", follower.getPose().getX());
+        panelsTelemetry.debug("Y", follower.getPose().getY());
+        panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.update(telemetry);
+    }
+
+    public static class Paths {
+
+        public PathChain Path1;
+        public PathChain Path2;
+        public PathChain Path3;
+        public PathChain Path4;
+        public PathChain Path5;
+
+        public Paths(Follower follower) {
+            Path1 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(85.000, 12.000), new Pose(85.000, 7.000))
+                    )
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(90),
+                            Math.toRadians(112.5)
+                    )
+                    .build();
+
+            Path2 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(85.000, 7.000), new Pose(85.000, -24.500))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
+                    .build();
+
+            Path3 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(85.000, -24.500), new Pose(105.000, -24.500))
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(0))
+                    .build();
+
+            Path4 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(115.000, -24.500), new Pose(85.000, 7.000))
+                    )
+                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
+                    .build();
+
+            Path5 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(85.000,7.000), new Pose(105.000, 7.000))
+                    )
+                    .setLinearHeadingInterpolation(
+                            Math.toRadians(112.5),
+                            Math.toRadians(90)
+                    )
+                    .build();
+        }
+    }
+
+    public int autonomousPathUpdate() {
+
 
         return pathState;
     }

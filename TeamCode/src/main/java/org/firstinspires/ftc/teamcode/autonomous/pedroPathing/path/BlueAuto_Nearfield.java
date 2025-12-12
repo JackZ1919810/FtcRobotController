@@ -95,6 +95,7 @@ public class BlueAuto_Nearfield extends OpMode {
         lastShooterPos = shooter1.getCurrentPosition();
         lastTime = getRuntime();
 
+
         // pp
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(21.308, 123.589, Math.toRadians(-138)));
@@ -146,7 +147,7 @@ public class BlueAuto_Nearfield extends OpMode {
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
 
-                if (currentTime - stateStartTime > 3) {
+                if (currentTime - stateStartTime > 2) {
                     autoState = 4; // start pp
                 }
                 break;
@@ -154,28 +155,28 @@ public class BlueAuto_Nearfield extends OpMode {
                 index.setPower(-0.4); // run indexer continuously
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
-                if (currentTime - stateStartTime > 8) {
-                    autoState = 5; // start pp
+                if (currentTime - stateStartTime > 7) {
+                    autoState = 9; // start pp
                 }
                 break;
-            case 5: // start pp
-                follower.followPath(paths.Path2, true);
-                autoState = 6;
-            case 6: // wait until path finished
-                if (!follower.isBusy()) {
-                    autoState = 7; // done
-                }
-            case 7:
-                IntakeMotor.setPower(IntakePower);
-                follower.followPath(paths.Path3, true);
-
-                if (currentTime - stateStartTime > 13) {
-                    autoState = 8;
-                }
-            case 8:
-                if (!follower.isBusy()) {
-                    autoState = 9;
-                }
+//            case 5: // start pp
+//                follower.followPath(paths.Path2, true);
+//                autoState = 6;
+//            case 6: // wait until path finished
+//                if (!follower.isBusy()) {
+//                    autoState = 7; // done
+//                }
+//            case 7:
+//                IntakeMotor.setPower(IntakePower);
+//                follower.followPath(paths.Path3, true);
+//
+//                if (currentTime - stateStartTime > 13) {
+//                    autoState = 8;
+//                }
+//            case 8:
+//                if (!follower.isBusy()) {
+//                    autoState = 9;
+//                }
 
             case 9: // stop everything
                 shooter1.setPower(0);
@@ -196,22 +197,6 @@ public class BlueAuto_Nearfield extends OpMode {
         panelsTelemetry.update(telemetry);
     }
 
-    // pid helpers
-    private double getShooterTPS() {
-        int currentPos = shooter1.getCurrentPosition();
-        double currentTime = getRuntime();
-        double dt = currentTime - lastTime;
-
-        double tps = 0;
-        if (dt > 0)
-            tps = (currentPos - lastShooterPos) / dt;
-
-        lastShooterPos = currentPos;
-        lastTime = currentTime;
-
-        return Math.abs(tps);
-    }
-
     private double shooterPID(double measuredTPS) {
         double error = shooterTargetTPS - measuredTPS;
         double dt = getRuntime() - lastTime;
@@ -223,6 +208,22 @@ public class BlueAuto_Nearfield extends OpMode {
 
         lastError = error;
         return -Range.clip(output, 0, 1);
+    }
+    // pid helpers
+    private double getShooterTPS() {
+        int currentPos = shooter1.getCurrentPosition();
+        double currentTime = getRuntime();
+        double dt = currentTime - lastTime;
+        double shooterTPS = getShooterTPS();
+        double shooterPower = shooterPID(shooterTPS);
+        double tps = 0;
+        if (dt > 0)
+            tps = (currentPos - lastShooterPos) / dt;
+
+        lastShooterPos = currentPos;
+        lastTime = currentTime;
+
+        return Math.abs(tps);
     }
 
     // paths
@@ -238,24 +239,24 @@ public class BlueAuto_Nearfield extends OpMode {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(21.308, 124.037), new Pose(69.981, 73.794))
+                            new BezierLine(new Pose(21.000, 121.000), new Pose(-16.000, 158.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(145), Math.toRadians(135))
+                    .setConstantHeadingInterpolation(Math.toRadians(140))
                     .build();
-            Path2 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(69.981, 73.794), new Pose(37.009, 83.664))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(1))
-                    .build();
-            Path3 = follower
-                    .pathBuilder()
-                    .addPath(
-                            new BezierLine(new Pose(37.009, 83.664), new Pose(5.832, 83.664))
-                    )
-                    .setLinearHeadingInterpolation(Math.toRadians(1), Math.toRadians(1))
-                    .build();
+//            Path2 = follower
+//                    .pathBuilder()
+//                    .addPath(
+//                            new BezierLine(new Pose(69.981, 73.794), new Pose(37.009, 83.664))
+//                    )
+//                    .setLinearHeadingInterpolation(Math.toRadians(135), Math.toRadians(1))
+//                    .build();
+//            Path3 = follower
+//                    .pathBuilder()
+//                    .addPath(
+//                            new BezierLine(new Pose(37.009, 83.664), new Pose(5.832, 83.664))
+//                    )
+//                    .setLinearHeadingInterpolation(Math.toRadians(1), Math.toRadians(1))
+//                    .build();
         }
 
     }

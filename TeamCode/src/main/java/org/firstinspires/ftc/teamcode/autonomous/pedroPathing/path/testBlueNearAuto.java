@@ -25,7 +25,7 @@ public class testBlueNearAuto extends OpMode {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(20, 121, Math.toRadians(120)));
+        follower.setStartingPose(new Pose(20, 121, Math.toRadians(140)));
 
         paths = new Paths(follower); // Build paths
 
@@ -57,7 +57,7 @@ public class testBlueNearAuto extends OpMode {
                     .addPath(
                             new BezierLine(new Pose(20.000, 121.000), new Pose(-13.000, 157.000))
                     )
-                    .setConstantHeadingInterpolation(Math.toRadians(120))
+                    .setConstantHeadingInterpolation(Math.toRadians(140))
                     .build();
 
             Path2 = follower
@@ -65,7 +65,7 @@ public class testBlueNearAuto extends OpMode {
                     .addPath(
                             new BezierLine(new Pose(-13, 157.000), new Pose(28, 157.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(120), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(140), Math.toRadians(0))
                     .build();
         }
     }

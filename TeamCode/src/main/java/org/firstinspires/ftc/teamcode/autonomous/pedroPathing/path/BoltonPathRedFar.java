@@ -3,19 +3,15 @@ package org.firstinspires.ftc.teamcode.autonomous.pedroPathing.path;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
-
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
-
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
@@ -24,9 +20,9 @@ import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constant
 
 import java.util.List;
 
-@Autonomous(name = "BoltonPathBlueFar", group = "Autonomous")
+@Autonomous(name = "BoltonPathRedFar", group = "Autonomous")
 @Configurable
-public class BoltonPathBlueFar extends OpMode {
+public class BoltonPathRedFar extends OpMode {
 
     private TelemetryManager panelsTelemetry;
 
@@ -64,7 +60,7 @@ public class BoltonPathBlueFar extends OpMode {
     private double noTagSince = -1;
     private double alignedSince = -1;
 
-    private static final int TAG_ID = 20;
+    private static final int TAG_ID = 24;
 
     private static final double ALIGN_TOL_DEG = 2.0;
     private static final double ALIGN_HOLD_SEC = 0.20;
@@ -73,7 +69,6 @@ public class BoltonPathBlueFar extends OpMode {
 
     private static final double TURN_KP = 0.01;
     private static final double TURN_MAX = 0.30;
-
     private static final double ALIGN_TIMEOUT = 3.0; // seconds
 
     @Override
@@ -81,7 +76,7 @@ public class BoltonPathBlueFar extends OpMode {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(85, 12, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(59, 12, Math.toRadians(90)));
         paths = new Paths(follower);
 
         FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
@@ -255,7 +250,7 @@ public class BoltonPathBlueFar extends OpMode {
                     break;
                 }
 
-                Double tx = getTxForTag20();
+                Double tx = getTxForTag24();
 
                 if (tx == null) {
                     // Slow search
@@ -274,6 +269,7 @@ public class BoltonPathBlueFar extends OpMode {
                 }
                 break;
             }
+
 
 
             case 20: {
@@ -308,12 +304,10 @@ public class BoltonPathBlueFar extends OpMode {
     // - Choose best Tag20 detection using target area
     // - Return tx for that detection
     // ---------------------------
-
     private boolean aligned(double tx) {
         return Math.abs(tx) < 1.2; // tighter, stable threshold
     }
-
-    private Double getTxForTag20() {
+    private Double getTxForTag24() {
         LLResult result = limelight.getLatestResult();
         if (result == null || !result.isValid()) return null;
 
@@ -403,18 +397,18 @@ public class BoltonPathBlueFar extends OpMode {
 
         public Paths(Follower follower) {
             Path1 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(85.000, 12.000), new Pose(85.000, 7.000)))
-                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(112.5))
+                    .addPath(new BezierLine(new Pose(59.000, 12.000), new Pose(59.000, 7.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(67.5))
                     .build();
 
             Path2 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(85.000, 7.000), new Pose(120.000, 7.000)))
-                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
+                    .addPath(new BezierLine(new Pose(59.000, 7.000), new Pose(24.000, 7.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
 
             Path3 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(120.000, 7.000), new Pose(85.000, 7.000)))
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
+                    .addPath(new BezierLine(new Pose(24.000, 7.000), new Pose(59.000, 7.000)))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
         }
     }

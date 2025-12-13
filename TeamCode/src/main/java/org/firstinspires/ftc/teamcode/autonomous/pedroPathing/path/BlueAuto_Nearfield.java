@@ -147,7 +147,7 @@ public class BlueAuto_Nearfield extends OpMode {
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
 
-                if (currentTime - stateStartTime > 2) {
+                if (currentTime - stateStartTime >= 2) {
                     autoState = 4; // start pp
                 }
                 break;
@@ -155,8 +155,8 @@ public class BlueAuto_Nearfield extends OpMode {
                 index.setPower(-0.4); // run indexer continuously
                 shooter1.setPower(NearShooterTargetTPS);
                 shooter2.setPower(NearShooterTargetTPS);
-                if (currentTime - stateStartTime > 7) {
-                    autoState = 9; // start pp
+                if (currentTime - stateStartTime >= 7) {
+                    autoState = 5; // start pp
                 }
                 break;
 //            case 5: // start pp
@@ -177,6 +177,12 @@ public class BlueAuto_Nearfield extends OpMode {
 //                if (!follower.isBusy()) {
 //                    autoState = 9;
 //                }
+            case 5:
+                follower.followPath(paths.Path2, true);
+                autoState = 6;
+            case 6:
+                if (!follower.isBusy())
+                    autoState = 9;
 
             case 9: // stop everything
                 shooter1.setPower(0);
@@ -240,6 +246,13 @@ public class BlueAuto_Nearfield extends OpMode {
                     .pathBuilder()
                     .addPath(
                             new BezierLine(new Pose(21.000, 121.000), new Pose(-16.000, 158.000))
+                    )
+                    .setConstantHeadingInterpolation(Math.toRadians(140))
+                    .build();
+            Path2 = follower
+                    .pathBuilder()
+                    .addPath(
+                            new BezierLine(new Pose(-16.000, 158.000), new Pose(0.000, 180.000))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(140))
                     .build();

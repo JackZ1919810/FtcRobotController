@@ -56,6 +56,7 @@ public class BoltonPathBlueFar extends OpMode {
     private int pathState = 0;
     private int actionState = 0;  // 0 idle, 10 align, 20 spin, 30 feed, 40 done
     private double actionStartTime = 0;
+    private double pathStartTime = 0;
 
     private int cycleCount = 0;
     private static final int MAX_CYCLES = 3;
@@ -130,7 +131,7 @@ public class BoltonPathBlueFar extends OpMode {
 
         // Shooter PID if spinning/feeding
         double tps = getShooterTPS();
-        boolean shooterOn = (actionState == 20 || actionState == 30);
+        boolean shooterOn = (actionState == 10 || actionState == 20 || actionState == 30);
 
         if (shooterOn) {
             double pwr = shooterPID(tps, shooterTargetTPS);
@@ -187,14 +188,18 @@ public class BoltonPathBlueFar extends OpMode {
                 IntakeMotor.setPower(1.0);
                 Index.setPower(-0.30);
 
+                pathStartTime = now;
+
                 pathState = 5;
                 break;
 
             case 5:
                 if (!follower.isBusy()) {
-                    IntakeMotor.setPower(0);
-                    Index.setPower(0);
-                    pathState = 6;
+                    if (now - pathStartTime >= 3.5){
+                        IntakeMotor.setPower(0);
+                        Index.setPower(0);
+                        pathState = 6;
+                    }
                 }
                 break;
 
@@ -251,7 +256,7 @@ public class BoltonPathBlueFar extends OpMode {
                 if (elapsed > ALIGN_TIMEOUT) {
                     // Give up aligning, go collect
                     turnInPlace(0);
-                    actionState = 40;   // treat as "done" so path can continue
+                    actionState = 20;   // treat as "done" so path can continue
                     break;
                 }
 
@@ -310,7 +315,7 @@ public class BoltonPathBlueFar extends OpMode {
     // ---------------------------
 
     private boolean aligned(double tx) {
-        return Math.abs(tx) < 1.2; // tighter, stable threshold
+        return Math.abs(tx) < 3; // tighter, stable threshold
     }
 
     private Double getTxForTag20() {
@@ -408,12 +413,12 @@ public class BoltonPathBlueFar extends OpMode {
                     .build();
 
             Path2 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(85.000, 7.000), new Pose(120.000, 7.000)))
+                    .addPath(new BezierLine(new Pose(85.000, 7.000), new Pose(115.000, 12.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
                     .build();
 
             Path3 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(120.000, 7.000), new Pose(85.000, 7.000)))
+                    .addPath(new BezierLine(new Pose(115.000, 12.000), new Pose(81.000, 7.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
                     .build();
         }

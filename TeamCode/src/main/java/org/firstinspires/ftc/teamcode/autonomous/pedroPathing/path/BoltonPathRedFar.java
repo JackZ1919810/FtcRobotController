@@ -53,6 +53,8 @@ public class BoltonPathRedFar extends OpMode {
     private int actionState = 0;  // 0 idle, 10 align, 20 spin, 30 feed, 40 done
     private double actionStartTime = 0;
 
+    private double pathStartTime = 0;
+
     private int cycleCount = 0;
     private static final int MAX_CYCLES = 3;
 
@@ -125,7 +127,7 @@ public class BoltonPathRedFar extends OpMode {
 
         // Shooter PID if spinning/feeding
         double tps = getShooterTPS();
-        boolean shooterOn = (actionState == 20 || actionState == 30);
+        boolean shooterOn = (actionState == 10 || actionState == 20 || actionState == 30);
 
         if (shooterOn) {
             double pwr = shooterPID(tps, shooterTargetTPS);
@@ -155,6 +157,7 @@ public class BoltonPathRedFar extends OpMode {
 
             case 0:
                 follower.followPath(paths.Path1, true);
+                pathStartTime = now;
                 pathState = 1;
                 break;
 
@@ -181,15 +184,18 @@ public class BoltonPathRedFar extends OpMode {
 
                 IntakeMotor.setPower(1.0);
                 Index.setPower(-0.30);
+                pathStartTime = now;
 
                 pathState = 5;
                 break;
 
             case 5:
                 if (!follower.isBusy()) {
-                    IntakeMotor.setPower(0);
-                    Index.setPower(0);
-                    pathState = 6;
+                    if (now - pathStartTime >= 3.5){
+                        IntakeMotor.setPower(0);
+                        Index.setPower(0);
+                        pathState = 6;
+                    }
                 }
                 break;
 
@@ -246,7 +252,7 @@ public class BoltonPathRedFar extends OpMode {
                 if (elapsed > ALIGN_TIMEOUT) {
                     // Give up aligning, go collect
                     turnInPlace(0);
-                    actionState = 40;   // treat as "done" so path can continue
+                    actionState = 20;   // treat as "done" so path can continue
                     break;
                 }
 
@@ -305,7 +311,7 @@ public class BoltonPathRedFar extends OpMode {
     // - Return tx for that detection
     // ---------------------------
     private boolean aligned(double tx) {
-        return Math.abs(tx) < 1.2; // tighter, stable threshold
+        return Math.abs(tx) < 3; // tighter, stable threshold
     }
     private Double getTxForTag24() {
         LLResult result = limelight.getLatestResult();
@@ -402,12 +408,12 @@ public class BoltonPathRedFar extends OpMode {
                     .build();
 
             Path2 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(59.000, 7.000), new Pose(24.000, 7.000)))
+                    .addPath(new BezierLine(new Pose(52.000, 7.000), new Pose(16.000, 12.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
 
             Path3 = follower.pathBuilder()
-                    .addPath(new BezierLine(new Pose(24.000, 7.000), new Pose(59.000, 7.000)))
+                    .addPath(new BezierLine(new Pose(16.000, 12.000), new Pose(52.000, 7.000)))
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
         }

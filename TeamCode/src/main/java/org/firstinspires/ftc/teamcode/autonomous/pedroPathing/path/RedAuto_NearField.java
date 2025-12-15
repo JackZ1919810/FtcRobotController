@@ -34,6 +34,7 @@ public class RedAuto_NearField extends OpMode {
     private boolean limitSwitchState;
     private int ballCount = 0;
 
+
     // intake
     private double IntakePower =  1;
 

@@ -28,22 +28,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.List;
 
 @TeleOp
-public class  realTeleOp extends OpMode {
+public class  notRealTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
     private DcMotor shooter1, shooter2;
     private DcMotor IntakeMotor;
     private DcMotor Index;
     private DistanceSensor Distance;
-    private DistanceSensor IntakeSensor;
-
-    // Timed intake-on-detect state
-    private boolean intakeDetectActive = false;
-    private double intakeDetectStartTime = 0;
-
-    // Detect threshold + run time
-    private static final double INTAKE_DETECT_DISTANCE_M = 0.30; // 30 cm
-    private static final double INTAKE_RUN_TIME_S = 2.0;
 
     // Limelight
     private Limelight3A limelight;
@@ -112,7 +103,6 @@ public class  realTeleOp extends OpMode {
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
         Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
-        IntakeSensor = hardwareMap.get(DistanceSensor.class, "IntakeSensor");
 
         Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
         Mag_Switch.setMode(DigitalChannel.Mode.INPUT);
@@ -201,30 +191,7 @@ public class  realTeleOp extends OpMode {
 
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
 
-        // ===== Intake sensor detect -> run intake for 2 seconds =====
-        double intakeDistM = IntakeSensor.getDistance(DistanceUnit.METER);
-
-        // Start the timed intake when something is within the threshold
-        if (!intakeDetectActive && intakeDistM > 0 && intakeDistM < INTAKE_DETECT_DISTANCE_M) {
-            intakeDetectActive = true;
-            intakeDetectStartTime = getRuntime();
-        }
-
-        // While active, report + force intake full speed
-        if (intakeDetectActive) {
-            telemetry.addLine("Ball is in");
-            IntakeMotor.setPower(1.0);
-
-            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S) {
-                intakeDetectActive = false;
-
-                // Only stop intake if driver isn't holding intake trigger
-                if (!(gamepad2.left_trigger > 0.1)) {
-                    IntakeMotor.setPower(stop);
-                }
-            }
-        }
-
+        telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
 
 //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
@@ -299,6 +266,7 @@ public class  realTeleOp extends OpMode {
                             turnCmd = 0.0;
                         }
 
+                        telemetry.addData("turnCMD", turnCmd);
 
                         rx = turnCmd;
                     }
@@ -368,6 +336,7 @@ public class  realTeleOp extends OpMode {
             shooter1.setPower(-shooterPower);
             shooter2.setPower(-shooterPower);
 
+            telemetry.addData("shooter run time", getRuntime()-startTime);
 
             if (getRuntime()-startTime >= 1.5){
                 IndexPower = 0.5;
@@ -412,18 +381,30 @@ public class  realTeleOp extends OpMode {
         }
 
 // Intake
-        // If the detect-timer is active, it owns the intake power.
-        // Otherwise, use normal gamepad logic.
-        if (!intakeDetectActive) {
-            if (intakeActive) {
-                IntakeMotor.setPower(1);
-            }
-            else if (!BallsOut) {
-                IntakeMotor.setPower(stop);
-            }
+        if (intakeActive) {
+            IntakeMotor.setPower(1);
+        }
+        else if (!BallsOut) {
+            IntakeMotor.setPower(stop);
         }
 
         double IndexValue = Index.getCurrentPosition();
+
+//  telemetry to help tune PID
+        telemetry.addData("Shooter TPS", shooterTPS);
+        telemetry.addData("Target TPS", shooterTargetTPS);
+        telemetry.addData("ShooterActive", shooterActive);
+        telemetry.addData("IndexEncoder:", IndexValue);
+        telemetry.addData("Heading (deg)", "%.1f", headingDeg);
+        telemetry.addData("Magnetic switch state:", limitSwitchState);
+        telemetry.addData("Index State:", indexActive);
+        telemetry.addData("AutoAlign", autoAlignEnabled);
+        telemetry.addData("Tag seen", tagSeen);
+        telemetry.addData("Tracked ID", trackedId);
+        telemetry.addData("LL angle (deg)", "%.2f", usedAngleDeg);
+        telemetry.addData("rx (final)", "%.2f", rx);
+
+        telemetry.update();
 
 
 // Ball detector with timed auto-index
@@ -432,6 +413,7 @@ public class  realTeleOp extends OpMode {
             ballCount = ballCount + 1;
             autoIndexing = true;
             autoIndexStartTime = getRuntime();
+            telemetry.addLine("The Ball Is Inside");
         }
 
 // If we are in auto-index mode, run the indexer for 1 second
@@ -447,7 +429,7 @@ public class  realTeleOp extends OpMode {
                 }
             }
             else if (limitSwitchState){
-                    Index.setPower(stop);ƒ
+                    Index.setPower(stop);
                     autoIndexing = false;
             }
 

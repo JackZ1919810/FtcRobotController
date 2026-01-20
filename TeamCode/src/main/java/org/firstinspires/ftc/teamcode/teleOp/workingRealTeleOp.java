@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -28,13 +27,15 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.List;
 
 @TeleOp
-public class  notRealTeleOp extends OpMode {
+public class workingRealTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
     private DcMotor shooter1, shooter2;
     private DcMotor IntakeMotor;
     private DcMotor Index;
     private DistanceSensor Distance;
+
+    private DistanceSensor IntakeSensor;
 
     // Limelight
     private Limelight3A limelight;
@@ -103,6 +104,7 @@ public class  notRealTeleOp extends OpMode {
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
         Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
+        IntakeSensor = hardwareMap.get(DistanceSensor.class, "IntakeSensor");
 
         Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
         Mag_Switch.setMode(DigitalChannel.Mode.INPUT);

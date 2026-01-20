@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
+import android.health.connect.datatypes.units.Power;
+
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -43,7 +45,7 @@ public class  realTeleOp extends OpMode {
 
     // Detect threshold + run time
     private static final double INTAKE_DETECT_DISTANCE_M = 0.30; // 30 cm
-    private static final double INTAKE_RUN_TIME_S = 2.0;
+    private static final double INTAKE_RUN_TIME_S = 4.0;
 
     // Limelight
     private Limelight3A limelight;
@@ -201,7 +203,6 @@ public class  realTeleOp extends OpMode {
 
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
 
-        // ===== Intake sensor detect -> run intake for 2 seconds =====
         double intakeDistM = IntakeSensor.getDistance(DistanceUnit.METER);
 
         // Start the timed intake when something is within the threshold
@@ -225,6 +226,8 @@ public class  realTeleOp extends OpMode {
             }
         }
 
+        // print drive motor powers
+        telemetry.addData("One of the driving motors is", FLwheel.getPower());
 
 //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {

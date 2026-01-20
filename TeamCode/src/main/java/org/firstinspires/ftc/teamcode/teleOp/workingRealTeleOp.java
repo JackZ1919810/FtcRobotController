@@ -63,7 +63,12 @@ public class workingRealTeleOp extends OpMode {
     // Auto index (distance-based) state
     private boolean autoIndexing = false;
     private int indexActive = 0;
-
+    // Timed intake-on-detect state
+    private boolean intakeDetectActive = false;
+    private double intakeDetectStartTime = 0;
+    // Detect threshold + run time
+    private static final double INTAKE_DETECT_DISTANCE_M = 0.30; // 30 cm
+    private static final double INTAKE_RUN_TIME_S = 2.0;
     private int ballCount = 0;
     private double autoIndexStartTime = 0;
 
@@ -193,7 +198,6 @@ public class workingRealTeleOp extends OpMode {
 
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
 
-        telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
 
 //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
@@ -383,14 +387,38 @@ public class workingRealTeleOp extends OpMode {
         }
 
 // Intake
+        // If the detect-timer is active, it owns the intake power.
+        // Otherwise, use normal gamepad logic.
+
         if (intakeActive) {
-            IntakeMotor.setPower(1);
+            IntakeMotor.setPower(1.0);
         }
         else if (!BallsOut) {
             IntakeMotor.setPower(stop);
         }
 
         double IndexValue = Index.getCurrentPosition();
+
+        double intakeDistM = IntakeSensor.getDistance(DistanceUnit.METER);
+
+        telemetry.addData("Distance is ", Distance.getDistance(DistanceUnit.CM) );
+
+        // Start the timed intake when something is within the threshold
+        if (!intakeActive && !intakeDetectActive && intakeDistM > 0 && intakeDistM <= INTAKE_DETECT_DISTANCE_M) {
+            intakeDetectActive = true;
+            intakeDetectStartTime = getRuntime();
+        }
+
+        // While active, report + force intake full speed
+        if (intakeDetectActive) {
+            telemetry.addLine("Ball is in");
+            IntakeMotor.setPower(1.0);
+
+            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && intakeDistM > INTAKE_DETECT_DISTANCE_M) {
+                intakeDetectActive = false;
+                IntakeMotor.setPower(stop);
+            }
+        }
 
 //  telemetry to help tune PID
         telemetry.addData("Shooter TPS", shooterTPS);

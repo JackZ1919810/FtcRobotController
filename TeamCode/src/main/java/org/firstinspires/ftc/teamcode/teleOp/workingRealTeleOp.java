@@ -95,6 +95,11 @@ public class workingRealTeleOp extends OpMode {
 
     private boolean autoAimActive = false;
 
+    private boolean newBallInIndexer = false;
+
+    private double IntakeTriggerStopTime = 0.0;
+    private double lastBallInTime = 0.0;
+
 
     @Override
     public void init() {
@@ -196,10 +201,38 @@ public class workingRealTeleOp extends OpMode {
         }
         lastAlignButton = alignButton;
 
+        //Indexer distance sensor activate
         double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
+        telemetry.addData("index distance is", DistanceOn);
+
+        // Ball detector with timed auto-index
+        // Start auto-indexing when a ball is detected and no other index mode is active
+        if (DistanceOn < 1 && !autoIndexing && !BallsOut && indexActive != 1){
+
+            //Determine if this a new ball by looking at how many time passed since last sensing
+            if (lastBallInTime - getRuntime() >= 0.5){
+                ballCount = ballCount + 1;
+                newBallInIndexer = true;
+                telemetry.addLine("new ball is in");
+            }
+            else{
+                newBallInIndexer = false;
+            }
+
+            autoIndexing = true;
+            autoIndexStartTime = getRuntime();
+            telemetry.addLine("The Ball Is Inside");
+
+            //What is the last time it sensed the ball?
+            lastBallInTime = getRuntime();
+        }
+
+        if(newBallInIndexer){
+            IntakeTriggerStopTime = getRuntime();
+        }
 
 
-//  adjust shooter target speed with dpad
+        //  adjust shooter target speed with dpad
         if (gamepad2.dpad_up) {
             shooterTargetTPS = 1100; // Far target
         } else if (gamepad2.dpad_down) {
@@ -208,6 +241,7 @@ public class workingRealTeleOp extends OpMode {
         shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 
 
+        //Drive control
         double lx = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
         double ly = applyDeadzone(Math.pow(-gamepad1.left_stick_y, 3));
         double rxManual = applyDeadzone(Math.pow(gamepad1.right_stick_x, 3)) * TURN_SCALE;
@@ -225,6 +259,8 @@ public class workingRealTeleOp extends OpMode {
 
         rx = rxManual;
 
+
+        //Auto tag align mode
         if (autoAlignEnabled){
 
             LLResult result= limelight.getLatestResult();
@@ -280,6 +316,7 @@ public class workingRealTeleOp extends OpMode {
             }
         }
 
+        //Drive commands
         double fl = ly + lx + rx;
         double fr = ly - lx - rx;
         double bl = ly - lx + rx;
@@ -298,7 +335,7 @@ public class workingRealTeleOp extends OpMode {
         BRwheel.setPower(br);
 
 
-// BALLS OUT
+        // BALLS OUT
         if (BallsOut) {
             Index.setPower(IndexPower);
             IntakeMotor.setPower(-1);
@@ -366,6 +403,7 @@ public class workingRealTeleOp extends OpMode {
         lastShooterPos = currentPos;
         lastTime = currentTime;
 
+
 // Index
         if (indexActive == 1 && !BallsOut && !shooterActive) {
             if (!limitSwitchState){
@@ -387,8 +425,7 @@ public class workingRealTeleOp extends OpMode {
         }
 
 // Intake
-        // If the detect-timer is active, it owns the intake power.
-        // Otherwise, use normal gamepad logic.
+        // Manual intake is the primary intake method, if it's not activated, the auto intake will run
 
         if (intakeActive) {
             IntakeMotor.setPower(1.0);
@@ -414,9 +451,11 @@ public class workingRealTeleOp extends OpMode {
             telemetry.addLine("Ball is in");
             IntakeMotor.setPower(1.0);
 
-            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && intakeDistM > INTAKE_DETECT_DISTANCE_M) {
+            //After one second that the indexer sense the ball, shut down the intake
+            if (IntakeTriggerStopTime- getRuntime() >= 1.0 && intakeDistM > INTAKE_DETECT_DISTANCE_M) {
                 intakeDetectActive = false;
                 IntakeMotor.setPower(stop);
+                telemetry.addData("Triggered time",IntakeTriggerStopTime- getRuntime());
             }
         }
 
@@ -436,15 +475,6 @@ public class workingRealTeleOp extends OpMode {
 
         telemetry.update();
 
-
-// Ball detector with timed auto-index
-// Start auto-indexing when a ball is detected and no other index mode is active
-        if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && indexActive != 1){
-            ballCount = ballCount + 1;
-            autoIndexing = true;
-            autoIndexStartTime = getRuntime();
-            telemetry.addLine("The Ball Is Inside");
-        }
 
 // If we are in auto-index mode, run the indexer for 1 second
     /*    if (autoIndexing) { // If user starts another index mode, cancel auto-indexing

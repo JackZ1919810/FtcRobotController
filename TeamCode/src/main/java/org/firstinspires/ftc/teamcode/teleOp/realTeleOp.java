@@ -103,7 +103,6 @@ public class realTeleOp extends OpMode {
         BRwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BLwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        // CHANGED: Set shooters to BRAKE instead of FLOAT to prevent free-spinning
         shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -164,6 +163,9 @@ public class realTeleOp extends OpMode {
             rx = -rx;
         }
 
+
+       // limelight align
+
         if (autoAlignEnabled && updateLimelight) {
             LLResult result = limelight.getLatestResult();
             if (result != null && result.isValid()) {
@@ -201,13 +203,12 @@ public class realTeleOp extends OpMode {
         double max = Math.max(1.0, maxAbs(fl, fr, bl, br));
         fl /= max; fr /= max; bl /= max; br /= max;
 
-        // CHANGED: Cap maximum drive power to save battery
+        //  Cap maximum drive power to save battery
         fl = Range.clip(fl, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
         fr = Range.clip(fr, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
         bl = Range.clip(bl, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
         br = Range.clip(br, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
 
-        // CHANGED: Only update motor power if it actually changed significantly
         setMotorPowerOptimized(FLwheel, fl, lastFLPower);
         setMotorPowerOptimized(FRwheel, fr, lastFRPower);
         setMotorPowerOptimized(BLwheel, bl, lastBLPower);
@@ -218,6 +219,7 @@ public class realTeleOp extends OpMode {
         lastBLPower = bl;
         lastBRPower = br;
 
+        // shooter PID
         int currentPos = shooter1.getCurrentPosition();
         double currentTime = getRuntime();
         double dt = currentTime - lastTime;
@@ -244,7 +246,6 @@ public class realTeleOp extends OpMode {
         } else {
             shooterLoopTimes = 0;
             IndexPower = 0.24;
-            // CHANGED: Ensure shooters are actually stopped
             if (shooter1.getPower() != 0 || shooter2.getPower() != 0) {
                 shooter1.setPower(0);
                 shooter2.setPower(0);
@@ -256,8 +257,8 @@ public class realTeleOp extends OpMode {
         lastShooterPos = currentPos;
         lastTime = currentTime;
 
-        // CHANGED: Only check intake sensor when intake is manually active or allow auto-detect
-        // Disable auto-detect if it's draining too much - comment out this entire block if not needed
+
+        // turn on the distance detector when intake is active
         if (intakeActive) {
             double intakeDist = IntakeSensor.getDistance(DistanceUnit.METER);
             if (!intakeDetectActive && intakeDist > 0 && intakeDist < INTAKE_DETECT_DISTANCE_M) {
@@ -266,31 +267,36 @@ public class realTeleOp extends OpMode {
             }
         }
 
+        // auto intake
         if (intakeDetectActive) {
             IntakeMotor.setPower(1.0);
             if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && !intakeActive) {
                 intakeDetectActive = false;
                 IntakeMotor.setPower(stop);
             }
+        // normal intake
+
         } else if (intakeActive) {
             IntakeMotor.setPower(1.0);
         } else if (!ballsOut) {
-            // CHANGED: Ensure intake is actually stopped
             if (IntakeMotor.getPower() != stop) {
                 IntakeMotor.setPower(stop);
             }
         }
 
+
+        // balls out
         if (ballsOut) {
             Index.setPower(IndexPower);
             IntakeMotor.setPower(-1);
         } else if (!shooterActive && indexActive != 1) {
-            // CHANGED: Ensure index is actually stopped
             if (Index.getPower() != stop) {
                 Index.setPower(stop);
             }
         }
 
+
+        // index
         if (gamepad2.a) indexActive = 1;
         boolean limitSwitchTriggered = !Mag_Switch.getState();
         if (indexActive == 1 && !ballsOut && !shooterActive) {
@@ -324,12 +330,10 @@ public class realTeleOp extends OpMode {
         return max;
     }
 
-    // CHANGED: New optimized method that only updates if power changed significantly
     private void setMotorPowerOptimized(DcMotor motor, double newPower, double lastPower) {
         if (Math.abs(newPower - lastPower) > 0.02) {
             motor.setPower(newPower);
         }
     }
 
-    // Removed old setMotorPower method
 }

@@ -1,36 +1,26 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
-import android.health.connect.datatypes.units.Power;
-
-import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
-import com.qualcomm.robotcore.util.Range;
-
-
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import com.qualcomm.robotcore.util.Range;
 
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-
-
-// Limelight imports
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
-
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.List;
 
 @TeleOp
-public class  realTeleOp extends OpMode {
+public class realTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
     private DcMotor shooter1, shooter2;
@@ -38,50 +28,33 @@ public class  realTeleOp extends OpMode {
     private DcMotor Index;
     private DistanceSensor Distance;
     private DistanceSensor IntakeSensor;
-
-    // Timed intake-on-detect state
-    private boolean intakeDetectActive = false;
-    private double intakeDetectStartTime = 0;
-
-    // Detect threshold + run time
-    private static final double INTAKE_DETECT_DISTANCE_M = 0.30; // 30 cm
-    private static final double INTAKE_RUN_TIME_S = 4.0;
-
-    // Limelight
+    private DigitalChannel Mag_Switch;
+    private IMU imu;
     private Limelight3A limelight;
 
-    //Auto align mode state
+    private static final double DEADZONE = 0.09;
+    private static final double TURN_SCALE = 0.7;
+    private static final double MAX_DRIVE_POWER = 0.85; // Cap drive power to save battery
+
+    private boolean intakeDetectActive = false;
+    private double intakeDetectStartTime = 0;
+    private static final double INTAKE_DETECT_DISTANCE_M = 0.30;
+    private static final double INTAKE_RUN_TIME_S = 4.0;
+
+    private double IntakePower = 1.0;
+    private double IndexPower = 0.24;
+    private double stop = 0.0;
+
     private boolean autoAlignEnabled = false;
     private boolean lastAlignButton = false;
-
-    //P Control for LL alignment
     private static final double kP_LL_Turn = 0.01;
     private static final double Max_LL_Turn = 0.5;
     private static final double LL_Angle_Range_DEG = 2.0;
 
-    private DigitalChannel Mag_Switch;
-
-    private boolean limitSwitchState;
-    private static final double DEADZONE = 0.09;
-    private static final double TURN_SCALE = 0.7;
-
-    // Shooter PID constants (start with these and tune)
     private double kP = 0.003;
     private double kI = 0.0015;
     private double kD = 0.000;
-
-    // Auto index (distance-based) state
-    private boolean autoIndexing = false;
-    private int indexActive = 0;
-
-    private int ballCount = 0;
-    private double autoIndexStartTime = 0;
-
-
-    // Target shooter speed in ticks per second (tune this!)
     private double shooterTargetTPS = 1100.0;
-
-    // Shooter PID state
     private int lastShooterPos = 0;
     private double lastTime = 0;
     private double shooterIntegral = 0;
@@ -89,17 +62,19 @@ public class  realTeleOp extends OpMode {
     private double startTime = 0;
     private int shooterLoopTimes = 0;
 
-    private double IntakePower = 1;
-    private double IndexPower = 0.24;
-    private double stop = 0;
-
+    private boolean autoIndexing = false;
+    private int indexActive = 0;
+    private int ballCount = 0;
     private boolean reverseControls = false;
     private boolean lastAState = false;
 
-    private IMU imu;
+    private int loopCounter = 0;
 
-    private boolean autoAimActive = false;
-
+    // Store last power values to reduce unnecessary updates
+    private double lastFLPower = 0;
+    private double lastFRPower = 0;
+    private double lastBLPower = 0;
+    private double lastBRPower = 0;
 
     @Override
     public void init() {
@@ -108,35 +83,31 @@ public class  realTeleOp extends OpMode {
         BRwheel = hardwareMap.get(DcMotor.class, "BRwheel");
         BLwheel = hardwareMap.get(DcMotor.class, "BLwheel");
 
-
         shooter1 = hardwareMap.get(DcMotor.class, "shooter_left");
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
         Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
         IntakeSensor = hardwareMap.get(DistanceSensor.class, "IntakeSensor");
-
         Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
+        imu = hardwareMap.get(IMU.class, "imu");
+
         Mag_Switch.setMode(DigitalChannel.Mode.INPUT);
 
-
-        shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
         FRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         BRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
 
         FRwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BRwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         BLwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        Index.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        shooter1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        shooter2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        IntakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Index.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-// setMode(DcMotor.RunMode.RUN_USING_ENCODER)
-
-// Enable encoders for shooter PID
         shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         Index.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
@@ -144,12 +115,8 @@ public class  realTeleOp extends OpMode {
         shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         Index.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-
         lastShooterPos = shooter1.getCurrentPosition();
         lastTime = getRuntime();
-
-//Imu reading init
-        imu = hardwareMap.get(IMU.class, "imu");
 
         IMU.Parameters params = new IMU.Parameters(
                 new RevHubOrientationOnRobot(
@@ -159,152 +126,71 @@ public class  realTeleOp extends OpMode {
         );
         imu.initialize(params);
 
-        //Limelight init
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
-        limelight.setPollRateHz(100);
+        limelight.setPollRateHz(30);
         limelight.pipelineSwitch(0);
         limelight.start();
-
     }
 
     @Override
     public void loop() {
+        loopCounter++;
+        boolean updateLimelight = (loopCounter % 3 == 0);
 
-        //get states
-        limitSwitchState = !Mag_Switch.getState();
-
-        YawPitchRollAngles orientation = imu.getRobotYawPitchRollAngles();
-        double headingDeg = orientation.getYaw(AngleUnit.DEGREES);
-
-// ========== DRIVE CONTROLS ==========
+        boolean shooterActive = (gamepad2.right_trigger > 0.1);
+        boolean intakeActive = (gamepad2.left_trigger > 0.1);
+        boolean ballsOut = gamepad2.left_bumper;
+        boolean alignButton = gamepad1.right_bumper;
         boolean currentAState = gamepad1.a;
+
         if (currentAState && !lastAState) {
             reverseControls = !reverseControls;
         }
         lastAState = currentAState;
 
-        //  GAMEPAD buttons
-        boolean shooterActive = (gamepad2.right_trigger > 0.1);
-        boolean intakeActive = (gamepad2.left_trigger > 0.1);
-        boolean BallsOut = (gamepad2.left_bumper);
-
-        //Index Gamepad logic
-        if(gamepad2.a){
-            indexActive = 1;
-        }
-
-        //Auto_align mode button
-        boolean alignButton = gamepad1.right_bumper;
-
-        if (alignButton && !lastAlignButton){
+        if (alignButton && !lastAlignButton) {
             autoAlignEnabled = !autoAlignEnabled;
         }
         lastAlignButton = alignButton;
 
-        double DistanceOn = (Distance.getDistance(DistanceUnit.CM));
-
-        double intakeDistM = IntakeSensor.getDistance(DistanceUnit.METER);
-
-        // Start the timed intake when something is within the threshold
-        if (!intakeDetectActive && intakeDistM > 0 && intakeDistM < INTAKE_DETECT_DISTANCE_M) {
-            intakeDetectActive = true;
-            intakeDetectStartTime = getRuntime();
-        }
-
-        // While active, report + force intake full speed
-        if (intakeDetectActive) {
-            telemetry.addLine("Ball is in");
-            IntakeMotor.setPower(1.0);
-
-            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S) {
-                intakeDetectActive = false;
-
-                // Only stop intake if driver isn't holding intake trigger
-                if (!(gamepad2.left_trigger > 0.1)) {
-                    IntakeMotor.setPower(stop);
-                }
-            }
-        }
-
-        // print drive motor powers
-        telemetry.addData("One of the driving motors is", FLwheel.getPower());
-
-//  adjust shooter target speed with dpad
-        if (gamepad2.dpad_up) {
-            shooterTargetTPS = 1100; // Far target
-        } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 950; // close target
-        }
-        shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
-
-
-        double lx = applyDeadzone(Math.pow(gamepad1.left_stick_x, 3));
-        double ly = applyDeadzone(Math.pow(-gamepad1.left_stick_y, 3));
-        double rxManual = applyDeadzone(Math.pow(gamepad1.right_stick_x, 3)) * TURN_SCALE;
+        double lx = cubicDeadzone(gamepad1.left_stick_x);
+        double ly = cubicDeadzone(-gamepad1.left_stick_y);
+        double rx = cubicDeadzone(gamepad1.right_stick_x) * TURN_SCALE;
 
         if (reverseControls) {
             lx = -lx;
             ly = -ly;
-            rxManual = -rxManual;
+            rx = -rx;
         }
 
-        double rx;
-        boolean tagSeen = false;
-        int trackedId = -1;
-        double usedAngleDeg = 0.0;
 
-        rx = rxManual;
+       // limelight align
 
-        if (autoAlignEnabled){
-
-            LLResult result= limelight.getLatestResult();
-
-            if (result != null && result.isValid()){
-
+        if (autoAlignEnabled && updateLimelight) {
+            LLResult result = limelight.getLatestResult();
+            if (result != null && result.isValid()) {
                 List<FiducialResult> fiducials = result.getFiducialResults();
-
-                if (fiducials != null && !fiducials.isEmpty()){
-                    FiducialResult closestTag = null;
-                    double closestZ = Double.MAX_VALUE;
-
-                    for (FiducialResult fid : fiducials) {
-                        int id = fid.getFiducialId();
-                        if (id == 20 || id == 24) {
-                            Pose3D poseCamSpace = fid.getTargetPoseCameraSpace();
-                            if (poseCamSpace != null) {
-                                double z = poseCamSpace.getPosition().z;
-                                if (z < closestZ) {
-                                    closestZ  = z;
-                                    closestTag = fid;
-                                }
-                            }
+                FiducialResult closestTag = null;
+                double closestZ = Double.MAX_VALUE;
+                for (FiducialResult fid : fiducials) {
+                    int id = fid.getFiducialId();
+                    if (id == 20 || id == 24) {
+                        Pose3D pose = fid.getTargetPoseCameraSpace();
+                        if (pose != null && pose.getPosition().z < closestZ) {
+                            closestZ = pose.getPosition().z;
+                            closestTag = fid;
                         }
                     }
+                }
 
-                    if (closestTag != null){
-                        tagSeen = true;
-                        trackedId = closestTag.getFiducialId();
-
-                        Pose3D poseCamSpace = closestTag.getTargetPoseCameraSpace();
-                        double x = poseCamSpace.getPosition().x;
-                        double z = poseCamSpace.getPosition().z;
-
-                        double angleRad=Math.atan2(x, z);
-                        double txDeg = Math.toDegrees(angleRad);
-                        usedAngleDeg = txDeg;
-
-                        double turnCmd = txDeg * kP_LL_Turn;
-
-                        if (turnCmd > Max_LL_Turn) turnCmd = Max_LL_Turn;
-                        if (turnCmd < -Max_LL_Turn) turnCmd = -Max_LL_Turn;
-
-                        if (Math.abs(txDeg) < LL_Angle_Range_DEG){
-                            turnCmd = 0.0;
-                        }
-
-
-                        rx = turnCmd;
-                    }
+                if (closestTag != null) {
+                    double x = closestTag.getTargetPoseCameraSpace().getPosition().x;
+                    double z = closestTag.getTargetPoseCameraSpace().getPosition().z;
+                    double txDeg = Math.toDegrees(Math.atan2(x, z));
+                    double turnCmd = txDeg * kP_LL_Turn;
+                    turnCmd = Range.clip(turnCmd, -Max_LL_Turn, Max_LL_Turn);
+                    if (Math.abs(txDeg) < LL_Angle_Range_DEG) turnCmd = 0.0;
+                    rx = turnCmd;
                 }
             }
         }
@@ -314,154 +200,140 @@ public class  realTeleOp extends OpMode {
         double bl = ly - lx + rx;
         double br = ly + lx - rx;
 
-        double max = Math.max(1.0, Math.max(Math.abs(fl),
-                Math.max(Math.abs(fr), Math.max(Math.abs(bl), Math.abs(br)))));
-        fl /= max;
-        fr /= max;
-        bl /= max;
-        br /= max;
+        double max = Math.max(1.0, maxAbs(fl, fr, bl, br));
+        fl /= max; fr /= max; bl /= max; br /= max;
 
-        FLwheel.setPower(fl);
-        FRwheel.setPower(fr);
-        BLwheel.setPower(bl);
-        BRwheel.setPower(br);
+        //  Cap maximum drive power to save battery
+        fl = Range.clip(fl, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
+        fr = Range.clip(fr, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
+        bl = Range.clip(bl, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
+        br = Range.clip(br, -MAX_DRIVE_POWER, MAX_DRIVE_POWER);
 
+        setMotorPowerOptimized(FLwheel, fl, lastFLPower);
+        setMotorPowerOptimized(FRwheel, fr, lastFRPower);
+        setMotorPowerOptimized(BLwheel, bl, lastBLPower);
+        setMotorPowerOptimized(BRwheel, br, lastBRPower);
 
-// BALLS OUT
-        if (BallsOut) {
-            Index.setPower(IndexPower);
-            IntakeMotor.setPower(-1);
-        } else {
-            Index.setPower(stop);
-            IntakeMotor.setPower(stop);
-        }
+        lastFLPower = fl;
+        lastFRPower = fr;
+        lastBLPower = bl;
+        lastBRPower = br;
 
-
-
-//  SHOOTER PID CONTROL
-// Measure shooter speed
+        // shooter PID
         int currentPos = shooter1.getCurrentPosition();
         double currentTime = getRuntime();
         double dt = currentTime - lastTime;
-        double shooterTPS = 0;
+        double shooterTPS = dt > 0 ? (currentPos - lastShooterPos) / dt : 0;
 
-
-        if (dt > 0) {
-            shooterTPS = (currentPos - lastShooterPos) / dt; // ticks per second
-        }
-
-        if (shooterActive && !BallsOut) {
-
-            if (shooterLoopTimes == 0){
-                startTime = getRuntime();
-            }
-
+        if (shooterActive && !ballsOut) {
+            if (shooterLoopTimes == 0) startTime = getRuntime();
             indexActive = 0;
-            double currentSpeed = Math.abs(shooterTPS); // PID on absolute speed so direction sign doesn't matter
-            double error = shooterTargetTPS - currentSpeed;
-
+            double error = shooterTargetTPS - Math.abs(shooterTPS);
             shooterIntegral += error * dt;
             double derivative = (dt > 0) ? (error - lastError) / dt : 0;
-
             double output = kP * error + kI * shooterIntegral + kD * derivative;
-
-// Shooter power command
             double shooterPower = -Range.clip(-output, -1, 0);
-
             shooter1.setPower(-shooterPower);
             shooter2.setPower(-shooterPower);
 
-
-            if (getRuntime()-startTime >= 1.5){
+            if (getRuntime() - startTime >= 1.5) {
                 IndexPower = 0.5;
                 Index.setPower(-IndexPower);
             }
 
             lastError = error;
-            shooterLoopTimes = shooterLoopTimes + 1;
-        }
-        else if (!shooterActive){
-// Shooter off, reset PID state
-            IndexPower = 0.24;
+            shooterLoopTimes++;
+        } else {
             shooterLoopTimes = 0;
-            shooter1.setPower(0);
-            shooter2.setPower(0);
+            IndexPower = 0.24;
+            if (shooter1.getPower() != 0 || shooter2.getPower() != 0) {
+                shooter1.setPower(0);
+                shooter2.setPower(0);
+            }
             shooterIntegral = 0;
             lastError = 0;
         }
 
-// Update last encoder/time for next loop
         lastShooterPos = currentPos;
         lastTime = currentTime;
 
-// Index
-        if (indexActive == 1 && !BallsOut && !shooterActive) {
-            if (!limitSwitchState){
-                Index.setPower(-IndexPower);
-                if (gamepad2.b){
-                    Index.setPower(stop);
-                    indexActive = 0;
-                }
+
+        // turn on the distance detector when intake is active
+        if (intakeActive) {
+            double intakeDist = IntakeSensor.getDistance(DistanceUnit.METER);
+            if (!intakeDetectActive && intakeDist > 0 && intakeDist < INTAKE_DETECT_DISTANCE_M) {
+                intakeDetectActive = true;
+                intakeDetectStartTime = getRuntime();
             }
-            else{
-                Index.setPower(stop);
-                indexActive = 0;
-            }
-        }
-        else if (!shooterActive && !BallsOut && indexActive != 1) {
-// Only stop here if nothing else is trying to move Index
-            Index.setPower(stop);
-            indexActive = 0;
         }
 
-// Intake
-        // If the detect-timer is active, it owns the intake power.
-        // Otherwise, use normal gamepad logic.
-        if (!intakeDetectActive) {
-            if (intakeActive) {
-                IntakeMotor.setPower(1);
+        // auto intake
+        if (intakeDetectActive) {
+            IntakeMotor.setPower(1.0);
+            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && !intakeActive) {
+                intakeDetectActive = false;
+                IntakeMotor.setPower(stop);
             }
-            else if (!BallsOut) {
+        // normal intake
+
+        } else if (intakeActive) {
+            IntakeMotor.setPower(1.0);
+        } else if (!ballsOut) {
+            if (IntakeMotor.getPower() != stop) {
                 IntakeMotor.setPower(stop);
             }
         }
 
-        double IndexValue = Index.getCurrentPosition();
 
-
-// Ball detector with timed auto-index
-// Start auto-indexing when a ball is detected and no other index mode is active
-        if (DistanceOn < 2.4 && !autoIndexing && !BallsOut && indexActive != 1){
-            ballCount = ballCount + 1;
-            autoIndexing = true;
-            autoIndexStartTime = getRuntime();
+        // balls out
+        if (ballsOut) {
+            Index.setPower(IndexPower);
+            IntakeMotor.setPower(-1);
+        } else if (!shooterActive && indexActive != 1) {
+            if (Index.getPower() != stop) {
+                Index.setPower(stop);
+            }
         }
 
-// If we are in auto-index mode, run the indexer for 1 second
-    /*    if (autoIndexing) { // If user starts another index mode, cancel auto-indexing
 
-            if (!limitSwitchState){  // Keep indexer running forward
-                if (ballCount % 2 != 0) {
-                    //Index.setPower(-IndexPower);
-                }
-                else{
+        // index
+        if (gamepad2.a) indexActive = 1;
+        boolean limitSwitchTriggered = !Mag_Switch.getState();
+        if (indexActive == 1 && !ballsOut && !shooterActive) {
+            if (!limitSwitchTriggered) {
+                Index.setPower(-IndexPower);
+                if (gamepad2.b) {
                     Index.setPower(stop);
-                    autoIndexing = false;
+                    indexActive = 0;
                 }
+            } else {
+                Index.setPower(stop);
+                indexActive = 0;
             }
-            else if (limitSwitchState){
-                    Index.setPower(stop);ƒ
-                    autoIndexing = false;
-            }
+        }
 
-    }*/
-
-
-        telemetry.update();
-
+        // telemetry.addData("Shooter TPS", shooterTPS);
+        // telemetry.addData("Loop Time (ms)", (System.nanoTime() / 1_000_000.0));
+        // telemetry.update();
     }
 
-    private static double applyDeadzone(double v) {
-        return (Math.abs(v) < DEADZONE) ? 0.0 : v;
+    private static double cubicDeadzone(double input) {
+        double value = input * input * input;
+        return (Math.abs(value) < DEADZONE) ? 0.0 : value;
     }
+
+    private double maxAbs(double... values) {
+        double max = 0.0;
+        for (double v : values) {
+            max = Math.max(max, Math.abs(v));
+        }
+        return max;
+    }
+
+    private void setMotorPowerOptimized(DcMotor motor, double newPower, double lastPower) {
+        if (Math.abs(newPower - lastPower) > 0.02) {
+            motor.setPower(newPower);
+        }
+    }
+
 }

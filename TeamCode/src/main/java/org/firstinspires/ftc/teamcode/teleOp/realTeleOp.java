@@ -42,7 +42,7 @@ public class realTeleOp extends OpMode {
     private static final double INTAKE_RUN_TIME_S = 4.0;
 
     private double IntakePower = 1.0;
-    private double IndexPower = 0.24;
+    private double IndexPower = 1;
     private double stop = 0.0;
 
     private boolean autoAlignEnabled = false;
@@ -97,6 +97,7 @@ public class realTeleOp extends OpMode {
         FRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         BRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
+        IntakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         FRwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -237,7 +238,6 @@ public class realTeleOp extends OpMode {
             shooter2.setPower(-shooterPower);
 
             if (getRuntime() - startTime >= 1.5) {
-                IndexPower = 0.5;
                 Index.setPower(-IndexPower);
             }
 
@@ -245,7 +245,6 @@ public class realTeleOp extends OpMode {
             shooterLoopTimes++;
         } else {
             shooterLoopTimes = 0;
-            IndexPower = 0.24;
             if (shooter1.getPower() != 0 || shooter2.getPower() != 0) {
                 shooter1.setPower(0);
                 shooter2.setPower(0);

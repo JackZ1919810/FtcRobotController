@@ -38,7 +38,7 @@ public class realTeleOp extends OpMode {
 
     private boolean intakeDetectActive = false;
     private double intakeDetectStartTime = 0;
-    private static final double INTAKE_DETECT_DISTANCE_M = 0.30;
+    private static final double INTAKE_DETECT_DISTANCE_M = 2;
     private static final double INTAKE_RUN_TIME_S = 4.0;
 
     private double IntakePower = 1.0;
@@ -87,7 +87,6 @@ public class realTeleOp extends OpMode {
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
-        Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
         IntakeSensor = hardwareMap.get(DistanceSensor.class, "IntakeSensor");
         Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
         imu = hardwareMap.get(IMU.class, "imu");

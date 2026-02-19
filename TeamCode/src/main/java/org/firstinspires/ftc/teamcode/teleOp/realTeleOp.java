@@ -38,8 +38,8 @@ public class realTeleOp extends OpMode {
 
     private boolean intakeDetectActive = false;
     private double intakeDetectStartTime = 0;
-    private static final double INTAKE_DETECT_DISTANCE_M = 2;
-    private static final double INTAKE_RUN_TIME_S = 4.0;
+    private static final double INTAKE_DETECT_DISTANCE_M = 0.24;
+    private static final double INTAKE_RUN_TIME_S = 1.0;
 
     private double IntakePower = 1.0;
     private double IndexPower = 1;
@@ -54,7 +54,7 @@ public class realTeleOp extends OpMode {
     private double kP = 0.003;
     private double kI = 0.0015;
     private double kD = 0.000;
-    private double shooterTargetTPS = 1100.0;
+    private double shooterTargetTPS = 965;
     private int lastShooterPos = 0;
     private double lastTime = 0;
     private double shooterIntegral = 0;
@@ -87,14 +87,15 @@ public class realTeleOp extends OpMode {
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
+        Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
         IntakeSensor = hardwareMap.get(DistanceSensor.class, "IntakeSensor");
         Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
         imu = hardwareMap.get(IMU.class, "imu");
 
         Mag_Switch.setMode(DigitalChannel.Mode.INPUT);
 
-        FRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
-        BRwheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        FLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        BLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
         IntakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -142,6 +143,7 @@ public class realTeleOp extends OpMode {
         boolean ballsOut = gamepad2.left_bumper;
         boolean alignButton = gamepad1.right_bumper;
         boolean currentAState = gamepad1.a;
+        boolean shootIndex = gamepad2.right_bumper;
 
         if (currentAState && !lastAState) {
             reverseControls = !reverseControls;
@@ -152,6 +154,13 @@ public class realTeleOp extends OpMode {
             autoAlignEnabled = !autoAlignEnabled;
         }
         lastAlignButton = alignButton;
+
+        if (gamepad2.dpad_up) {
+            shooterTargetTPS = 950; // Far target
+        } else if (gamepad2.dpad_down) {
+            shooterTargetTPS = 875; // close target
+        }
+        shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
 
         double lx = cubicDeadzone(gamepad1.left_stick_x);
         double ly = cubicDeadzone(-gamepad1.left_stick_y);
@@ -164,7 +173,7 @@ public class realTeleOp extends OpMode {
         }
 
 
-       // limelight align
+        // limelight align
 
         if (autoAlignEnabled && updateLimelight) {
             LLResult result = limelight.getLatestResult();
@@ -236,10 +245,6 @@ public class realTeleOp extends OpMode {
             shooter1.setPower(-shooterPower);
             shooter2.setPower(-shooterPower);
 
-            if (getRuntime() - startTime >= 1.5) {
-                Index.setPower(-IndexPower);
-            }
-
             lastError = error;
             shooterLoopTimes++;
         } else {
@@ -255,51 +260,29 @@ public class realTeleOp extends OpMode {
         lastShooterPos = currentPos;
         lastTime = currentTime;
 
-
-        // turn on the distance detector when intake is active
-        if (intakeActive) {
-            double intakeDist = IntakeSensor.getDistance(DistanceUnit.METER);
-            if (!intakeDetectActive && intakeDist > 0 && intakeDist < INTAKE_DETECT_DISTANCE_M) {
-                intakeDetectActive = true;
-                intakeDetectStartTime = getRuntime();
-            }
-        }
-
-        // auto intake
-        if (intakeDetectActive) {
-            IntakeMotor.setPower(1.0);
-            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && !intakeActive) {
-                intakeDetectActive = false;
-                IntakeMotor.setPower(stop);
-            }
-        // normal intake
-
-        } else if (intakeActive) {
-            IntakeMotor.setPower(1.0);
-        } else if (!ballsOut) {
-            if (IntakeMotor.getPower() != stop) {
-                IntakeMotor.setPower(stop);
-            }
-        }
-
-
         // balls out
         if (ballsOut) {
-            Index.setPower(IndexPower);
-            IntakeMotor.setPower(-1);
+            Index.setPower(0.5);
+            IntakeMotor.setPower(-0.7);
+            shooter1.setPower(1);
+            shooter2.setPower(1);
         } else if (!shooterActive && indexActive != 1) {
             if (Index.getPower() != stop) {
                 Index.setPower(stop);
             }
         }
 
+        // shoot indexer spinning
+        if (shootIndex){
+            Index.setPower(-IndexPower);
+        }
 
         // index
         if (gamepad2.a) indexActive = 1;
         boolean limitSwitchTriggered = !Mag_Switch.getState();
         if (indexActive == 1 && !ballsOut && !shooterActive) {
             if (!limitSwitchTriggered) {
-                Index.setPower(-IndexPower);
+                Index.setPower(-0.7);
                 if (gamepad2.b) {
                     Index.setPower(stop);
                     indexActive = 0;
@@ -307,6 +290,37 @@ public class realTeleOp extends OpMode {
             } else {
                 Index.setPower(stop);
                 indexActive = 0;
+            }
+        }
+
+
+        // Intake
+        // If the detect-timer is active, it owns the intake power.
+        // Otherwise, use normal gamepad logic.
+
+        if (intakeActive) {
+            IntakeMotor.setPower(1);
+        }
+        else if (!ballsOut && !intakeDetectActive) {
+            IntakeMotor.setPower(stop);
+        }
+
+        double intakeDistM = IntakeSensor.getDistance(DistanceUnit.METER);
+
+        // Start the timed intake when something is within the threshold
+        if (!intakeActive && !intakeDetectActive && intakeDistM > 0 && intakeDistM <= INTAKE_DETECT_DISTANCE_M && !ballsOut) {
+            intakeDetectActive = true;
+            intakeDetectStartTime = getRuntime();
+        }
+
+        // While active, report + force intake full speed
+        if (intakeDetectActive) {
+            telemetry.addLine("Ball is in");
+            IntakeMotor.setPower(1.0);
+
+            if (getRuntime() - intakeDetectStartTime >= INTAKE_RUN_TIME_S && intakeDistM > INTAKE_DETECT_DISTANCE_M) {
+                intakeDetectActive = false;
+                IntakeMotor.setPower(stop);
             }
         }
 

@@ -18,9 +18,9 @@ public class Constants {
 
     //PIDF constant setup: zero power accelerations, PIDF coefficients
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(9.7)
-            .forwardZeroPowerAcceleration(-73.307090304007967)
-            .lateralZeroPowerAcceleration(-61.36872751888086)
+            .mass(13.1)
+            .forwardZeroPowerAcceleration(-60.861288517480833)
+            .lateralZeroPowerAcceleration(-45.842144532334667)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.052, 0, 0.001, 0.021))
             .headingPIDFCoefficients(new PIDFCoefficients(1, 0, 0.006, 0.007))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.6, 0, 0.0001, 0.6, 0.021))
@@ -34,31 +34,31 @@ public class Constants {
             .rightRearMotorName("BRwheel")
             .leftRearMotorName("BLwheel")
             .leftFrontMotorName("FLwheel")
-            .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-            .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-            .xVelocity(53.02522687)
-            .yVelocity(45.14716797855758);
+            .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+            .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+            .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
+            .xVelocity(44.930140709190567)
+            .yVelocity(52.0244335373202);
 
     //Encoder localizations
     public static ThreeWheelIMUConstants localizerConstants = new ThreeWheelIMUConstants()
 
             .forwardTicksToInches(0.001990565001921)
-            .strafeTicksToInches(0.002055018443623)
+            .strafeTicksToInches(0.001963543916)
             .turnTicksToInches(0.002033369892898)
-            .leftPodY(112/25.4)
-            .rightPodY(-118/25.4)
-            .strafePodX(-126/25.4)
+            .leftPodY(-112/25.4)
+            .rightPodY(112/25.4)
+            .strafePodX(126/25.4)
             .leftEncoder_HardwareMapName("FRwheel")
             .rightEncoder_HardwareMapName("BRwheel")
             .strafeEncoder_HardwareMapName("FLwheel")
-            .leftEncoderDirection(Encoder.FORWARD)
-            .rightEncoderDirection(Encoder.FORWARD)
-            .strafeEncoderDirection(Encoder.REVERSE)
+            .leftEncoderDirection(Encoder.REVERSE)
+            .rightEncoderDirection(Encoder.REVERSE)
+            .strafeEncoderDirection(Encoder.FORWARD)
             .IMU_HardwareMapName("imu")
-            .IMU_Orientation(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.UP,
-                    RevHubOrientationOnRobot.UsbFacingDirection.RIGHT));
+            .IMU_Orientation(new RevHubOrientationOnRobot(RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                    RevHubOrientationOnRobot.UsbFacingDirection.UP));
 
     //Path constraints (behaviour setup, eg, when to stop in a path)
     public static PathConstraints pathConstraints = new PathConstraints(0.99,
@@ -74,3 +74,4 @@ public class Constants {
                 .build();
     }
 }
+

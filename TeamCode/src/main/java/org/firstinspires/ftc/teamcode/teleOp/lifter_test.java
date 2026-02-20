@@ -23,7 +23,6 @@ public class lifter_test extends LinearOpMode {
         telemetry.addData("Status", "Checking for servos...");
         telemetry.update();
 
-        // We use a try-catch block to "detect" the servos without crashing if they are missing
         try {
             myServo = hardwareMap.get(CRServo.class, "myServo");
             myServo1 = hardwareMap.get(CRServo.class, "myServo1");
@@ -35,13 +34,11 @@ public class lifter_test extends LinearOpMode {
             myServo7 = hardwareMap.get(CRServo.class, "myServo7");
 
 
-            // If the code reaches here, it found them!
             telemetry.addData("Servos Detected", "YES");
             telemetry.addData("Status", "Ready to start");
             telemetry.update();
 
         } catch (Exception e) {
-            // If the names "myServo" or "myServo1" are missing from the config
             telemetry.addData("Servos Detected", "NO (Check Config)");
             telemetry.update();
         }
@@ -50,7 +47,6 @@ public class lifter_test extends LinearOpMode {
 
         while (opModeIsActive()) {
 
-            // We only run the movement code if the servos were actually found (not null)
             if (myServo != null && myServo1 != null) {
 
                 if (gamepad1.a) {

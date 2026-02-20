@@ -13,6 +13,8 @@ import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes.FiducialResult;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
@@ -47,7 +49,7 @@ public class realTeleOp extends OpMode {
 
     private boolean autoAlignEnabled = false;
     private boolean lastAlignButton = false;
-    private static final double kP_LL_Turn = 0.01;
+    private static final double kP_LL_Turn = -0.02;
     private static final double Max_LL_Turn = 0.5;
     private static final double LL_Angle_Range_DEG = 2.0;
 
@@ -75,6 +77,9 @@ public class realTeleOp extends OpMode {
     private double lastFRPower = 0;
     private double lastBLPower = 0;
     private double lastBRPower = 0;
+
+    private boolean tagSeen;
+    private int trackedId;
 
     @Override
     public void init() {
@@ -156,7 +161,7 @@ public class realTeleOp extends OpMode {
         lastAlignButton = alignButton;
 
         if (gamepad2.dpad_up) {
-            shooterTargetTPS = 950; // Far target
+            shooterTargetTPS = 965; // Far target
         } else if (gamepad2.dpad_down) {
             shooterTargetTPS = 875; // close target
         }
@@ -184,6 +189,7 @@ public class realTeleOp extends OpMode {
                 for (FiducialResult fid : fiducials) {
                     int id = fid.getFiducialId();
                     if (id == 20 || id == 24) {
+                        tagSeen = true;
                         Pose3D pose = fid.getTargetPoseCameraSpace();
                         if (pose != null && pose.getPosition().z < closestZ) {
                             closestZ = pose.getPosition().z;
@@ -324,10 +330,12 @@ public class realTeleOp extends OpMode {
             }
         }
 
-        // telemetry.addData("Shooter TPS", shooterTPS);
-        // telemetry.addData("Loop Time (ms)", (System.nanoTime() / 1_000_000.0));
-        // telemetry.update();
+        telemetry.addData("Shooter TPS", shooterTPS);
+        telemetry.addData("Loop Time (ms)", (System.nanoTime() / 1_000_000.0));
+        telemetry.addData("Tag seen", tagSeen);
+        telemetry.update();
     }
+
 
     private static double cubicDeadzone(double input) {
         double value = input * input * input;

@@ -7,18 +7,50 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.Range;
+
 import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constants;
 
 @Autonomous
 @Configurable // Panels
-public class ProvincialRedFar extends OpMode {
+public class ProvincialBlueFar extends OpMode {
+    private TelemetryManager panelsTelemetry;
 
-    private TelemetryManager panelsTelemetry; // Panels Telemetry instance
-    public Follower follower; // Pedro Pathing follower instance
-    private int pathState; // Current autonomous path state (state machine)
-    private Paths paths; // Paths defined in the Paths class
+    public Follower follower;
+    private ProvincialBlueFar.Paths paths;
+
+    private DcMotor FRwheel, BRwheel, FLwheel, BLwheel;
+    private DcMotor shooter1, shooter2, IntakeMotor, Index;
+
+    private Limelight3A limelight;
+
+    // -------- Shooter PID --------
+    private double kP = 0.003;
+    private double kI = 0.0015;
+    private double kD = 0.0;
+
+    private double shooterTargetTPS = 500;
+
+    private int lastShooterPos = 0;
+    private double lastShooterTime = 0;
+
+    private double shooterIntegral = 0;
+    private double lastError = 0;
+    private double pidLastTime = 0;
+
+    // -------- State machines --------
+    private int pathState = 0;
+    private int actionState = 0;  // 0, 10, 20, 30, 40 done
+    private double actionStartTime = 0;
+    private double pathStartTime = 0;
+
+    private int cycleCount = 0;
+    private static final int MAX_CYCLES = 3;
 
     // ✅ timer that starts AFTER a path finishes
     private double pauseStartTime = -1;
@@ -29,8 +61,39 @@ public class ProvincialRedFar extends OpMode {
 
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(new Pose(56, 9.5, Math.toRadians(90)));
+        paths = new ProvincialBlueFar.Paths(follower);
 
-        paths = new Paths(follower); // Build paths
+        FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
+        FLwheel = hardwareMap.get(DcMotor.class, "FLwheel");
+        BRwheel = hardwareMap.get(DcMotor.class, "BRwheel");
+        BLwheel = hardwareMap.get(DcMotor.class, "BLwheel");
+
+        FLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
+        BLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        shooter1 = hardwareMap.get(DcMotor.class, "shooter_left");
+        shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
+        IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
+        Index = hardwareMap.get(DcMotor.class, "Index");
+
+        shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        shooter1.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        shooter2.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        Index.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+
+        shooter1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        shooter2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        Index.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        lastShooterPos = shooter1.getCurrentPosition();
+        lastShooterTime = getRuntime();
+        pidLastTime = getRuntime();
+
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        limelight.setPollRateHz(100);
+        limelight.pipelineSwitch(0);
+        limelight.start();
 
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
@@ -39,7 +102,24 @@ public class ProvincialRedFar extends OpMode {
     @Override
     public void loop() {
         follower.update(); // Update Pedro Pathing
-        pathState = autonomousPathUpdate(); // Update autonomous state machine
+        double now = getRuntime();
+
+        pathState = autonomousPathUpdate(now); // Update autonomous state machine
+        updateActionState(now);
+
+        // Shooter PID if spinning/feeding
+        double tps = getShooterTPS();
+        boolean shooterOn = (actionState == 20 || actionState == 30);
+
+        if (shooterOn) {
+            double pwr = shooterPID(tps, shooterTargetTPS);
+            shooter1.setPower(-pwr);
+            shooter2.setPower(-pwr);
+        } else {
+            shooter1.setPower(0);
+            shooter2.setPower(0);
+            resetShooterPID();
+        }
 
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
@@ -125,16 +205,59 @@ public class ProvincialRedFar extends OpMode {
         }
     }
 
-    public int autonomousPathUpdate() {
+    // ---------------------------
+    // Shooter TPS + PID
+    // ---------------------------
+    private double getShooterTPS() {
+        int currentPos = shooter1.getCurrentPosition();
+        double currentTime = getRuntime();
+        double dt = currentTime - lastShooterTime;
+
+        double tps = 0;
+        if (dt > 0) {
+            tps = (currentPos - lastShooterPos) / dt;
+        }
+
+        lastShooterPos = currentPos;
+        lastShooterTime = currentTime;
+        return tps;
+    }
+
+    private double shooterPID(double tps, double target) {
+        double currentSpeed = Math.abs(tps);
+        double error = target - currentSpeed;
+
+        double now = getRuntime();
+        double dt = Math.max(1e-3, now - pidLastTime);
+
+        shooterIntegral += error * dt;
+        double derivative = (error - lastError) / dt;
+
+        double output = kP * error + kI * shooterIntegral + kD * derivative;
+
+        lastError = error;
+        pidLastTime = now;
+
+        return -Range.clip(-output, -1, 0);
+    }
+
+    private void resetShooterPID() {
+        shooterIntegral = 0;
+        lastError = 0;
+        pidLastTime = getRuntime();
+    }
+
+    public int autonomousPathUpdate(double now) {
         switch (pathState) {
 
             case 0:
                 follower.followPath(paths.Path1, true);
                 pathState = 1;
+                actionState = 10;
                 break;
 
             case 1:
-                if (finishedAndPaused1s()) {
+                if (finishedAndPaused1s() && actionState == 40) {
                     pathState = 2;
                 }
                 break;
@@ -196,4 +319,33 @@ public class ProvincialRedFar extends OpMode {
 
         return pathState;
     }
+
+    private void updateActionState(double now) {
+        switch (actionState) {
+            case 10:
+                actionStartTime = now;
+                actionState = 20;
+                break;
+
+            case 20:
+                if (now - actionStartTime >= 2){
+                    actionState = 30;
+                    actionStartTime = now;
+                }
+                break;
+
+            case 30:
+                Index.setPower(-1);
+                if(now - actionStartTime >= 1.5){
+                    actionState = 40;
+                }
+                break;
+
+            case 40:
+                Index.setPower(0);
+                IntakeMotor.setPower(0);
+                break;
+        }
+    }
+
 }

@@ -135,8 +135,8 @@ public class BoltonPathBlueFar extends OpMode {
 
         if (shooterOn) {
             double pwr = shooterPID(tps, shooterTargetTPS);
-            shooter1.setPower(-pwr);
-            shooter2.setPower(-pwr);
+            shooter1.setPower(pwr);
+            shooter2.setPower(pwr);
         } else {
             shooter1.setPower(0);
             shooter2.setPower(0);

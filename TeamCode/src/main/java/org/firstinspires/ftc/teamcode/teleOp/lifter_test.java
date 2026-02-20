@@ -55,26 +55,26 @@ public class lifter_test extends LinearOpMode {
 
                 if (gamepad1.a) {
                     // Move UP
-                    myServo.setPower(1);
-                    myServo1.setPower(1);
+                    myServo.setPower(-1);
+                    myServo1.setPower(-1);
                     myServo2.setPower(1);
                     myServo3.setPower(1);
-                    myServo4.setPower(1);
+                    myServo4.setPower(-1);
                     myServo5.setPower(1);
                     myServo6.setPower(1);
-                    myServo7.setPower(1);
+                    myServo7.setPower(-1);
 
                 }
                 else if (gamepad1.b) {
                     // Move DOWN
-                    myServo.setPower(-1);
-                    myServo1.setPower(-1);
+                    myServo.setPower(1);
+                    myServo1.setPower(1);
                     myServo2.setPower(-1);
                     myServo3.setPower(-1);
-                    myServo4.setPower(-1);
+                    myServo4.setPower(1);
                     myServo5.setPower(-1);
                     myServo6.setPower(-1);
-                    myServo7.setPower(-1);
+                    myServo7.setPower(1);
 
                 }
                 else {

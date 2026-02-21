@@ -120,7 +120,6 @@ public class realTeleOp extends OpMode {
         FLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         BLwheel.setDirection(DcMotorSimple.Direction.REVERSE);
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
-        IntakeMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
         FRwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         FLwheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);

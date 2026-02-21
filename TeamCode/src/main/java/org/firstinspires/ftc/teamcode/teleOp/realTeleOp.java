@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -9,6 +10,8 @@ import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.util.Range;
+
+import com.qualcomm.robotcore.hardware.CRServo;
 
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.limelightvision.LLResult;
@@ -22,6 +25,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.List;
 
 @TeleOp
+@Disabled
+
 public class realTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;
@@ -81,6 +86,19 @@ public class realTeleOp extends OpMode {
     private boolean tagSeen;
     private int trackedId;
 
+    // lifter (8 CRServos)
+    private CRServo myServo;
+    private CRServo myServo1;
+    private CRServo myServo2;
+    private CRServo myServo3;
+    private CRServo myServo4;
+    private CRServo myServo5;
+    private CRServo myServo6;
+    private CRServo myServo7;
+
+    private boolean lifterServosDetected = false;
+
+
     @Override
     public void init() {
         FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
@@ -136,6 +154,29 @@ public class realTeleOp extends OpMode {
         limelight.setPollRateHz(30);
         limelight.pipelineSwitch(0);
         limelight.start();
+        // --- lifter servos mapping (non-fatal if missing in config) ---
+        telemetry.addData("Status", "Checking for lifter servos...");
+        telemetry.update();
+
+        try {
+            myServo  = hardwareMap.get(CRServo.class, "myServo");
+            myServo1 = hardwareMap.get(CRServo.class, "myServo1");
+            myServo2 = hardwareMap.get(CRServo.class, "myServo2");
+            myServo3 = hardwareMap.get(CRServo.class, "myServo3");
+            myServo4 = hardwareMap.get(CRServo.class, "myServo4");
+            myServo5 = hardwareMap.get(CRServo.class, "myServo5");
+            myServo6 = hardwareMap.get(CRServo.class, "myServo6");
+            myServo7 = hardwareMap.get(CRServo.class, "myServo7");
+
+            lifterServosDetected = true;
+            telemetry.addData("Lifter Servos Detected", "YES");
+            telemetry.addData("Status", "Lifter ready");
+            telemetry.update();
+        } catch (Exception e) {
+            lifterServosDetected = false;
+            telemetry.addData("Lifter Servos Detected", "NO (Check Config)");
+            telemetry.update();
+        }
     }
 
     @Override
@@ -328,6 +369,46 @@ public class realTeleOp extends OpMode {
                 intakeDetectActive = false;
                 IntakeMotor.setPower(stop);
             }
+        }
+
+        // --- lifter control (mapped to gamepad2 dpad LEFT/RIGHT to avoid conflicts) ---
+        if (lifterServosDetected) {
+            if (gamepad2.dpad_left) {
+                // Move UP
+                myServo.setPower(-1);
+                myServo1.setPower(-1);
+                myServo2.setPower(1);
+                myServo3.setPower(1);
+                myServo4.setPower(-1);
+                myServo5.setPower(1);
+                myServo6.setPower(1);
+                myServo7.setPower(-1);
+            } else if (gamepad2.dpad_right) {
+                // Move DOWN
+                myServo.setPower(1);
+                myServo1.setPower(1);
+                myServo2.setPower(-1);
+                myServo3.setPower(-1);
+                myServo4.setPower(1);
+                myServo5.setPower(-1);
+                myServo6.setPower(-1);
+                myServo7.setPower(1);
+            } else {
+                // STOP
+                myServo.setPower(0);
+                myServo1.setPower(0);
+                myServo2.setPower(0);
+                myServo3.setPower(0);
+                myServo4.setPower(0);
+                myServo5.setPower(0);
+                myServo6.setPower(0);
+                myServo7.setPower(0);
+            }
+
+            telemetry.addData("Lifter Servos Detected", "YES");
+            telemetry.addData("Lifter Servo Power", myServo.getPower());
+        } else {
+            telemetry.addData("Lifter Servos Detected", "NO");
         }
 
         telemetry.addData("Shooter TPS", shooterTPS);

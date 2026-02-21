@@ -21,7 +21,7 @@ import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constant
 
 @Autonomous
 @Configurable // Panels
-public class ProvincialBlueFar extends OpMode {
+public class ProvincialRedFar extends OpMode {
     private TelemetryManager panelsTelemetry;
 
     public Follower follower;
@@ -73,7 +73,7 @@ public class ProvincialBlueFar extends OpMode {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
         follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(new Pose(56, 9.5, Math.toRadians(90)));
+        follower.setStartingPose(new Pose(88, 9.5, Math.toRadians(90)));
         paths = new ProvincialBlueFar.Paths(follower);
 
         FRwheel = hardwareMap.get(DcMotor.class, "FRwheel");
@@ -156,7 +156,6 @@ public class ProvincialBlueFar extends OpMode {
                 allowIndexRunI = true;
                 ballCount++;
             } else if (ballCount % 2 == 0 && ballCount != 0) {
-                ballCount = 0;
                 allowIndexRunI = false;
                 allowIndexRun = false;
             }
@@ -196,52 +195,52 @@ public class ProvincialBlueFar extends OpMode {
             Path1 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 9.500), new Pose(56.000, 13.000))
+                            new BezierLine(new Pose(88.000, 9.500), new Pose(88.000, 13.000))
                     )
                     .setLinearHeadingInterpolation(
                             Math.toRadians(90),
-                            Math.toRadians(112.5)
+                            Math.toRadians(67.5)
                     )
                     .build();
 
             Path2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(56.000, 13.000), new Pose(10.000, 10.000))
+                            new BezierLine(new Pose(88.000, 13.000), new Pose(134.000, 10.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
 
             Path3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.000, 10.000), new Pose(62.000, 18.000))
+                            new BezierLine(new Pose(134.000, 10.000), new Pose(88.000, 18.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
 
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(62.000, 18.000), new Pose(62.000, 35.000))
+                            new BezierLine(new Pose(88.000, 18.000), new Pose(88.000, 35.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
+                    .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
 
             Path5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(62.000, 35.000), new Pose(10.000, 35.000))
+                            new BezierLine(new Pose(88.000, 35.000), new Pose(134.000, 35.000))
                     )
-                    .setConstantHeadingInterpolation(Math.toRadians(0))
+                    .setConstantHeadingInterpolation(Math.toRadians(180))
                     .build();
 
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.000, 35.000), new Pose(62.000, 18.000))
+                            new BezierLine(new Pose(134.000, 35.000), new Pose(88.000, 18.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
+                    .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
         }
     }
@@ -344,6 +343,7 @@ public class ProvincialBlueFar extends OpMode {
             case 4:
                 follower.followPath(paths.Path3, true);
                 allowIndexRun = false;
+                ballCount = 0;
                 pathState = 5;
                 break;
 
@@ -387,6 +387,7 @@ public class ProvincialBlueFar extends OpMode {
             case 11:
                 follower.followPath(paths.Path6, true);
                 allowIndexRun = false;
+                ballCount = 0;
                 pathState = 12;
 
             case 12:

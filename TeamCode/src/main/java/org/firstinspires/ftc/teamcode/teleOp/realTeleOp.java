@@ -371,7 +371,7 @@ public class realTeleOp extends OpMode {
             }
         }
 
-        // --- lifter control (mapped to gamepad2 dpad LEFT/RIGHT to avoid conflicts) ---
+        // lifter control
         if (lifterServosDetected) {
             if (gamepad2.dpad_left) {
                 // Move UP

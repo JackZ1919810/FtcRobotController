@@ -2,12 +2,11 @@ package org.firstinspires.ftc.teamcode.teleOp;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constants;
-
 @Disabled
 @TeleOp(name = "Pedro TeleOp")
 public class PP_driving extends OpMode {

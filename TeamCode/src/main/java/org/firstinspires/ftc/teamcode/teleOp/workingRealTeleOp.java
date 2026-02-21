@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.teleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -29,6 +30,7 @@ import java.util.List;
 
 @Disabled
 @TeleOp
+@Disabled
 public class workingRealTeleOp extends OpMode {
 
     private DcMotor FRwheel, FLwheel, BRwheel, BLwheel;

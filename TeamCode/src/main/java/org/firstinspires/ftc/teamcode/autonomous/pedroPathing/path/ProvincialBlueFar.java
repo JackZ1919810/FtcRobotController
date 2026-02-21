@@ -12,8 +12,11 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constants;
 
 @Autonomous
@@ -27,6 +30,9 @@ public class ProvincialBlueFar extends OpMode {
     private DcMotor FRwheel, BRwheel, FLwheel, BLwheel;
     private DcMotor shooter1, shooter2, IntakeMotor, Index;
 
+    private DigitalChannel Mag_Switch;
+    private DistanceSensor Distance;
+
     private Limelight3A limelight;
 
     // -------- Shooter PID --------
@@ -34,7 +40,7 @@ public class ProvincialBlueFar extends OpMode {
     private double kI = 0.0015;
     private double kD = 0.0;
 
-    private double shooterTargetTPS = 500;
+    private double shooterTargetTPS = 900;
 
     private int lastShooterPos = 0;
     private double lastShooterTime = 0;
@@ -54,6 +60,13 @@ public class ProvincialBlueFar extends OpMode {
 
     // ✅ timer that starts AFTER a path finishes
     private double pauseStartTime = -1;
+
+    private double distance = 0;
+    private boolean autoIndexing = false;
+    private int ballCount = 0;
+    private boolean indexRunning = false;
+    private boolean allowIndexRun = false;
+    private boolean allowIndexRunI = false;
 
     @Override
     public void init() {
@@ -75,6 +88,9 @@ public class ProvincialBlueFar extends OpMode {
         shooter2 = hardwareMap.get(DcMotor.class, "shooter_right");
         IntakeMotor = hardwareMap.get(DcMotor.class, "intake");
         Index = hardwareMap.get(DcMotor.class, "Index");
+
+        Distance = hardwareMap.get(DistanceSensor.class, "Distance1");
+        Mag_Switch = hardwareMap.get(DigitalChannel.class, "Mag_Switch");
 
         shooter2.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -121,11 +137,48 @@ public class ProvincialBlueFar extends OpMode {
             resetShooterPID();
         }
 
+        //intake
+        if(pathState == 2 || pathState == 3 || pathState == 9 || pathState == 10){
+            IntakeMotor.setPower(1);
+        }
+        else{
+            IntakeMotor.setPower(0);
+        }
+
+        //autoIndex
+        distance = Distance.getDistance(DistanceUnit.MM);
+        boolean limitSwitchTriggered = !Mag_Switch.getState();
+        autoIndexing = (pathState == 2 || pathState == 3 || pathState == 4 || pathState == 5
+                || pathState == 8 || pathState == 9 || pathState == 10 || pathState == 11);
+
+        if (distance <= 30 && autoIndexing && allowIndexRun) {
+            if ((ballCount % 2 != 0 || ballCount == 0) && !indexRunning) {
+                allowIndexRunI = true;
+                ballCount++;
+            } else if (ballCount % 2 == 0 && ballCount != 0) {
+                allowIndexRunI = false;
+                allowIndexRun = false;
+            }
+        }
+
+        if (!limitSwitchTriggered && allowIndexRunI) {
+            Index.setPower(-0.7);
+            indexRunning = true;
+        } else {
+            Index.setPower(0);
+            indexRunning = false;
+            allowIndexRunI = false;
+        }
+
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
         panelsTelemetry.debug("X", follower.getPose().getX());
         panelsTelemetry.debug("Y", follower.getPose().getY());
         panelsTelemetry.debug("Heading", follower.getPose().getHeading());
+        panelsTelemetry.debug("ballCount", ballCount);
+        panelsTelemetry.debug("Allow index run?", allowIndexRun);
+        panelsTelemetry.debug("distance", distance);
+        panelsTelemetry.debug("actionState", actionState);
         panelsTelemetry.update(telemetry);
     }
 
@@ -193,12 +246,23 @@ public class ProvincialBlueFar extends OpMode {
     }
 
     // ✅ helper: wait 1 second AFTER follower becomes not busy
-    private boolean finishedAndPaused1s() {
+    private boolean finishedAndPausedHalfs() {
         if (!follower.isBusy()) {
             if (pauseStartTime < 0) {
                 pauseStartTime = getRuntime(); // start pause timer once
             }
-            return (getRuntime() - pauseStartTime) >= 1.0;
+            return (getRuntime() - pauseStartTime) >= 0.7;
+        } else {
+            pauseStartTime = -1; // reset timer while path is running
+            return false;
+        }
+    }
+    private boolean finishedAndPaused3s() {
+        if (!follower.isBusy()) {
+            if (pauseStartTime < 0) {
+                pauseStartTime = getRuntime(); // start pause timer once
+            }
+            return (getRuntime() - pauseStartTime) >= 3.0;
         } else {
             pauseStartTime = -1; // reset timer while path is running
             return false;
@@ -253,11 +317,13 @@ public class ProvincialBlueFar extends OpMode {
             case 0:
                 follower.followPath(paths.Path1, true);
                 pathState = 1;
-                actionState = 10;
+
+                // ✅ only start shooting sequence once
+                if (actionState == 0 || actionState == 40) actionState = 10;
                 break;
 
             case 1:
-                if (finishedAndPaused1s() && actionState == 40) {
+                if (finishedAndPausedHalfs() && actionState == 40) {
                     pathState = 2;
                 }
                 break;
@@ -265,54 +331,75 @@ public class ProvincialBlueFar extends OpMode {
             case 2:
                 follower.followPath(paths.Path2, true);
                 pathState = 3;
+                allowIndexRun = true;
                 break;
 
             case 3:
-                if (finishedAndPaused1s()) {
+                if (finishedAndPaused3s()) {
                     pathState = 4;
                 }
                 break;
 
             case 4:
                 follower.followPath(paths.Path3, true);
+                allowIndexRun = false;
+                ballCount = 0;
                 pathState = 5;
                 break;
 
             case 5:
-                if (finishedAndPaused1s()) {
+                if (!follower.isBusy() && actionState == 40) {
+                    // ✅ only start shooting sequence once
+                    actionState = 10;
                     pathState = 6;
                 }
                 break;
 
             case 6:
-                follower.followPath(paths.Path4, true);
-                pathState = 7;
+                if(actionState == 40){
+                    pathState = 7;
+                }
                 break;
 
             case 7:
-                if (finishedAndPaused1s()) {
-                    pathState = 8;
-                }
+                follower.followPath(paths.Path4, true);
+                pathState = 8;
                 break;
 
             case 8:
-                follower.followPath(paths.Path5, true);
-                pathState = 9;
-                break;
-
-            case 9:
-                if (finishedAndPaused1s()) {
-                    pathState = 10;
+                if (finishedAndPausedHalfs()) {
+                    pathState = 9;
                 }
                 break;
 
+            case 9:
+                follower.followPath(paths.Path5, true);
+                allowIndexRun = true;
+                pathState = 10;
+                break;
+
             case 10:
-                follower.followPath(paths.Path6, true);
-                pathState = 11;
+                if (finishedAndPaused3s()) {
+                    pathState = 11;
+                }
                 break;
 
             case 11:
-                if(!follower.isBusy()){
+                follower.followPath(paths.Path6, true);
+                allowIndexRun = false;
+                ballCount = 0;
+                pathState = 12;
+
+            case 12:
+                if (!follower.isBusy() && actionState == 40) {
+                    // ✅ only start shooting sequence once
+                    actionState = 10;
+                    pathState = 13;
+                }
+                break;
+
+            case 13:
+                if(actionState == 40){
                     break;
                 }
         }
@@ -322,21 +409,22 @@ public class ProvincialBlueFar extends OpMode {
 
     private void updateActionState(double now) {
         switch (actionState) {
+
             case 10:
-                actionStartTime = now;
+                actionStartTime = getRuntime();
                 actionState = 20;
                 break;
 
             case 20:
-                if (now - actionStartTime >= 2){
+                if (getRuntime() - actionStartTime >= 2) {
                     actionState = 30;
-                    actionStartTime = now;
+                    actionStartTime = getRuntime();
                 }
                 break;
 
             case 30:
                 Index.setPower(-1);
-                if(now - actionStartTime >= 1.5){
+                if (getRuntime() - actionStartTime >= 1.5) {
                     actionState = 40;
                 }
                 break;
@@ -344,8 +432,8 @@ public class ProvincialBlueFar extends OpMode {
             case 40:
                 Index.setPower(0);
                 IntakeMotor.setPower(0);
+                actionStartTime = 0;
                 break;
         }
     }
-
 }

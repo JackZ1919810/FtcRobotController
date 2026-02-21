@@ -14,6 +14,7 @@ import com.qualcomm.hardware.limelightvision.LLResultTypes;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -24,6 +25,7 @@ import org.firstinspires.ftc.teamcode.autonomous.pedroPathing.constants.Constant
 
 import java.util.List;
 
+@Disabled
 @Autonomous(name = "BoltonPathBlueFar", group = "Autonomous")
 @Configurable
 public class BoltonPathBlueFar extends OpMode {

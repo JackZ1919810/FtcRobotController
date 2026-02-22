@@ -370,6 +370,7 @@ public class realTeleOp extends OpMode {
         }
 
         // lifter control
+
         if (lifterServosDetected) {
             if (myServo != null && myServo1 != null) {
                 if (gamepad2.dpad_left) {

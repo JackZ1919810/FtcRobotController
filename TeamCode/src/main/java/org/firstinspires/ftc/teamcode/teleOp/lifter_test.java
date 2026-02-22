@@ -7,7 +7,6 @@ import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 @TeleOp(name = "Lifter Test")
-@Disabled
 
 public class lifter_test extends LinearOpMode {
 

@@ -28,7 +28,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 import java.util.List;
 
-@Disabled
+
 @TeleOp
 @Disabled
 public class workingRealTeleOp extends OpMode {

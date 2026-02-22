@@ -25,7 +25,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import java.util.List;
 
 @TeleOp
-@Disabled
 
 public class realTeleOp extends OpMode {
 
@@ -372,42 +371,44 @@ public class realTeleOp extends OpMode {
 
         // lifter control
         if (lifterServosDetected) {
-            if (gamepad2.dpad_left) {
-                // Move UP
-                myServo.setPower(-1);
-                myServo1.setPower(-1);
-                myServo2.setPower(1);
-                myServo3.setPower(1);
-                myServo4.setPower(-1);
-                myServo5.setPower(1);
-                myServo6.setPower(1);
-                myServo7.setPower(-1);
-            } else if (gamepad2.dpad_right) {
-                // Move DOWN
-                myServo.setPower(1);
-                myServo1.setPower(1);
-                myServo2.setPower(-1);
-                myServo3.setPower(-1);
-                myServo4.setPower(1);
-                myServo5.setPower(-1);
-                myServo6.setPower(-1);
-                myServo7.setPower(1);
-            } else {
-                // STOP
-                myServo.setPower(0);
-                myServo1.setPower(0);
-                myServo2.setPower(0);
-                myServo3.setPower(0);
-                myServo4.setPower(0);
-                myServo5.setPower(0);
-                myServo6.setPower(0);
-                myServo7.setPower(0);
+            if (myServo != null && myServo1 != null) {
+                if (gamepad2.dpad_left) {
+                    // Move UP
+                    myServo.setPower(-1);
+                    myServo1.setPower(-1);
+                    myServo2.setPower(1);
+                    myServo3.setPower(1);
+                    myServo4.setPower(-1);
+                    myServo5.setPower(1);
+                    myServo6.setPower(1);
+                    myServo7.setPower(-1);
+                } else if (gamepad2.dpad_right) {
+                    // Move DOWN
+                    myServo.setPower(1);
+                    myServo1.setPower(1);
+                    myServo2.setPower(-1);
+                    myServo3.setPower(-1);
+                    myServo4.setPower(1);
+                    myServo5.setPower(-1);
+                    myServo6.setPower(-1);
+                    myServo7.setPower(1);
+                } else {
+                    // STOP
+                    myServo.setPower(0);
+                    myServo1.setPower(0);
+                    myServo2.setPower(0);
+                    myServo3.setPower(0);
+                    myServo4.setPower(0);
+                    myServo5.setPower(0);
+                    myServo6.setPower(0);
+                    myServo7.setPower(0);
+                }
+                telemetry.addData("Lifter Servos Detected", "YES");
+                telemetry.addData("Lifter Servo Power", myServo.getPower());
             }
-
-            telemetry.addData("Lifter Servos Detected", "YES");
-            telemetry.addData("Lifter Servo Power", myServo.getPower());
-        } else {
-            telemetry.addData("Lifter Servos Detected", "NO");
+            else {
+                telemetry.addData("Lifter Servos Detected", "NO");
+            }
         }
 
         telemetry.addData("Shooter TPS", shooterTPS);

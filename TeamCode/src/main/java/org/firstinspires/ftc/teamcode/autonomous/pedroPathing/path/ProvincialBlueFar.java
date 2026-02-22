@@ -40,7 +40,7 @@ public class ProvincialBlueFar extends OpMode {
     private double kI = 0.0015;
     private double kD = 0.0;
 
-    private double shooterTargetTPS = 900;
+    private double shooterTargetTPS = 965;
 
     private int lastShooterPos = 0;
     private double lastShooterTime = 0;
@@ -67,6 +67,10 @@ public class ProvincialBlueFar extends OpMode {
     private boolean indexRunning = false;
     private boolean allowIndexRun = false;
     private boolean allowIndexRunI = false;
+    private boolean resetIndex = false;
+    private double now1;
+    private boolean resetIndexMove = false;
+    private int limitTriggeredTimes = 0;
 
     @Override
     public void init() {
@@ -151,25 +155,74 @@ public class ProvincialBlueFar extends OpMode {
         autoIndexing = (pathState == 2 || pathState == 3 || pathState == 4 || pathState == 5
                 || pathState == 8 || pathState == 9 || pathState == 10 || pathState == 11);
 
-        if (distance <= 30 && autoIndexing && allowIndexRun) {
-            if ((ballCount % 2 != 0 || ballCount == 0) && !indexRunning) {
+        if (distance <= 35 && autoIndexing && allowIndexRun && !allowIndexRunI) {
+            /* if ((ballCount == 1 || ballCount == 0)) {
                 allowIndexRunI = true;
                 ballCount++;
-            } else if (ballCount % 2 == 0 && ballCount != 0) {
+            } else if (ballCount == 2) {
                 ballCount = 0;
                 allowIndexRunI = false;
                 allowIndexRun = false;
-            }
+            } */
+
+            //timing version: use if can't fix the the counting version:
+            now1 = getRuntime();
+            allowIndexRunI = true;
+        }
+        //timing include this
+        if(getRuntime()-now1 >= 0.5 && allowIndexRunI){
+            allowIndexRunI = false;
+        }
+        //and this
+        if(allowIndexRunI){
+            Index.setPower(-0.7);
+        }
+        else{
+            Index.setPower(0);
+            allowIndexRunI = false;
         }
 
-        if (!limitSwitchTriggered && allowIndexRunI) {
+        /*
+        if (!limitSwitchTriggered && allowIndexRunI && !resetIndex) {
             Index.setPower(-0.7);
-            indexRunning = true;
-        } else {
+        }
+        else if (limitTriggeredTimes == 0 && allowIndexRunI && !resetIndex){
+            Index.setPower(-0.7);
+        }
+        else if (limitSwitchTriggered && allowIndexRunI && !resetIndex){
+            limitTriggeredTimes ++;
             Index.setPower(0);
             indexRunning = false;
             allowIndexRunI = false;
         }
+
+        */
+
+        //reset index
+        if(pathState == 2 || pathState == 3 || pathState == 7 || pathState == 8 || pathState == 9){
+            if(!limitSwitchTriggered){
+                resetIndex = true;
+            }
+            else{
+                resetIndex = false;
+            }
+        }
+        else{
+            resetIndex = false;
+        }
+
+        if(resetIndex){
+            Index.setPower(-0.4);
+            indexRunning = true;
+            resetIndexMove = true;
+        }
+        else{
+            Index.setPower(0);
+            limitTriggeredTimes = 0;
+            indexRunning = false;
+            resetIndex = false;
+        }
+
 
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
@@ -180,6 +233,7 @@ public class ProvincialBlueFar extends OpMode {
         panelsTelemetry.debug("Allow index run?", allowIndexRun);
         panelsTelemetry.debug("distance", distance);
         panelsTelemetry.debug("actionState", actionState);
+        panelsTelemetry.debug("limit triggered times", limitTriggeredTimes);
         panelsTelemetry.update(telemetry);
     }
 
@@ -311,7 +365,6 @@ public class ProvincialBlueFar extends OpMode {
         lastError = 0;
         pidLastTime = getRuntime();
     }
-
     public int autonomousPathUpdate(double now) {
         switch (pathState) {
 

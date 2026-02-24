@@ -34,7 +34,7 @@ public class RedAuto_Farfield extends OpMode {
 
     // shooter pid
     private double kP = 0.003, kI = 0.0015, kD = 0.0;
-    private double shooterTargetTPS = 1100;
+    private double shooterTargetTPS = 965;
     private int lastShooterPos = 0;
     private double lastTime = 0, shooterIntegral = 0, lastError = 0;
 

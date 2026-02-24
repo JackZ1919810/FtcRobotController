@@ -40,7 +40,7 @@ public class ProvincialRedFar extends OpMode {
     private double kI = 0.0015;
     private double kD = 0.0;
 
-    private double shooterTargetTPS = 900;
+    private double shooterTargetTPS = 810;
 
     private int lastShooterPos = 0;
     private double lastShooterTime = 0;
@@ -67,6 +67,10 @@ public class ProvincialRedFar extends OpMode {
     private boolean indexRunning = false;
     private boolean allowIndexRun = false;
     private boolean allowIndexRunI = false;
+    private boolean resetIndex = false;
+    private double now1;
+    private boolean resetIndexMove = false;
+    private int limitTriggeredTimes = 0;
 
     @Override
     public void init() {
@@ -151,24 +155,74 @@ public class ProvincialRedFar extends OpMode {
         autoIndexing = (pathState == 2 || pathState == 3 || pathState == 4 || pathState == 5
                 || pathState == 8 || pathState == 9 || pathState == 10 || pathState == 11);
 
-        if (distance <= 30 && autoIndexing && allowIndexRun) {
-            if ((ballCount % 2 != 0 || ballCount == 0) && !indexRunning) {
+        if (distance <= 35 && autoIndexing && allowIndexRun && !allowIndexRunI) {
+            /* if ((ballCount == 1 || ballCount == 0)) {
                 allowIndexRunI = true;
                 ballCount++;
-            } else if (ballCount % 2 == 0 && ballCount != 0) {
+            } else if (ballCount == 2) {
+                ballCount = 0;
                 allowIndexRunI = false;
                 allowIndexRun = false;
-            }
+            } */
+
+            //timing version: use if can't fix the the counting version:
+            now1 = getRuntime();
+            allowIndexRunI = true;
+        }
+        //timing include this
+        if(getRuntime()-now1 >= 0.5 && allowIndexRunI){
+            allowIndexRunI = false;
+        }
+        //and this
+        if(allowIndexRunI){
+            Index.setPower(-0.7);
+        }
+        else{
+            Index.setPower(0);
+            allowIndexRunI = false;
         }
 
-        if (!limitSwitchTriggered && allowIndexRunI) {
+        /*
+        if (!limitSwitchTriggered && allowIndexRunI && !resetIndex) {
             Index.setPower(-0.7);
-            indexRunning = true;
-        } else {
+        }
+        else if (limitTriggeredTimes == 0 && allowIndexRunI && !resetIndex){
+            Index.setPower(-0.7);
+        }
+        else if (limitSwitchTriggered && allowIndexRunI && !resetIndex){
+            limitTriggeredTimes ++;
             Index.setPower(0);
             indexRunning = false;
             allowIndexRunI = false;
         }
+
+        */
+
+        //reset index
+        if(pathState == 2 || pathState == 3 || pathState == 7 || pathState == 8 || pathState == 9){
+            if(!limitSwitchTriggered){
+                resetIndex = true;
+            }
+            else{
+                resetIndex = false;
+            }
+        }
+        else{
+            resetIndex = false;
+        }
+
+        if(resetIndex){
+            Index.setPower(-0.4);
+            indexRunning = true;
+            resetIndexMove = true;
+        }
+        else{
+            Index.setPower(0);
+            limitTriggeredTimes = 0;
+            indexRunning = false;
+            resetIndex = false;
+        }
+
 
         // Log values to Panels and Driver Station
         panelsTelemetry.debug("Path State", pathState);
@@ -179,6 +233,7 @@ public class ProvincialRedFar extends OpMode {
         panelsTelemetry.debug("Allow index run?", allowIndexRun);
         panelsTelemetry.debug("distance", distance);
         panelsTelemetry.debug("actionState", actionState);
+        panelsTelemetry.debug("limit triggered times", limitTriggeredTimes);
         panelsTelemetry.update(telemetry);
     }
 
@@ -206,7 +261,7 @@ public class ProvincialRedFar extends OpMode {
             Path2 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(88.000, 13.000), new Pose(134.000, 10.000))
+                            new BezierLine(new Pose(88.000, 13.000), new Pose(134, 10.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
                     .build();
@@ -214,7 +269,7 @@ public class ProvincialRedFar extends OpMode {
             Path3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(134.000, 10.000), new Pose(88.000, 18.000))
+                            new BezierLine(new Pose(134, 10.000), new Pose(88.000, 18.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
@@ -222,15 +277,15 @@ public class ProvincialRedFar extends OpMode {
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(88.000, 18.000), new Pose(88.000, 35.000))
+                            new BezierLine(new Pose(88.000, 18.000), new Pose(88, 35.000))
                     )
-                    .setLinearHeadingInterpolation(Math.toRadians(67.5), Math.toRadians(180))
+                    .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(180))
                     .build();
 
             Path5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(88.000, 35.000), new Pose(134.000, 35.000))
+                            new BezierLine(new Pose(88, 35.000), new Pose(134, 35.000))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(180))
                     .build();
@@ -238,7 +293,7 @@ public class ProvincialRedFar extends OpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(134.000, 35.000), new Pose(88.000, 18.000))
+                            new BezierLine(new Pose(134, 35.000), new Pose(88, 18.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(67.5))
                     .build();
@@ -310,7 +365,6 @@ public class ProvincialRedFar extends OpMode {
         lastError = 0;
         pidLastTime = getRuntime();
     }
-
     public int autonomousPathUpdate(double now) {
         switch (pathState) {
 
@@ -343,7 +397,6 @@ public class ProvincialRedFar extends OpMode {
             case 4:
                 follower.followPath(paths.Path3, true);
                 allowIndexRun = false;
-                ballCount = 0;
                 pathState = 5;
                 break;
 
@@ -387,7 +440,6 @@ public class ProvincialRedFar extends OpMode {
             case 11:
                 follower.followPath(paths.Path6, true);
                 allowIndexRun = false;
-                ballCount = 0;
                 pathState = 12;
 
             case 12:

@@ -370,14 +370,13 @@ public class realTeleOp extends OpMode {
         }
 
         // lifter control
-
         if (lifterServosDetected) {
             if (myServo != null && myServo1 != null) {
                 if (gamepad2.dpad_left) {
                     // Move UP
-                    myServo.setPower(-1);
+                    myServo.setPower(1);
                     myServo1.setPower(-1);
-                    myServo2.setPower(1);
+                    myServo2.setPower(-1);
                     myServo3.setPower(1);
                     myServo4.setPower(-1);
                     myServo5.setPower(1);
@@ -385,9 +384,9 @@ public class realTeleOp extends OpMode {
                     myServo7.setPower(-1);
                 } else if (gamepad2.dpad_right) {
                     // Move DOWN
-                    myServo.setPower(1);
+                    myServo.setPower(-1);
                     myServo1.setPower(1);
-                    myServo2.setPower(-1);
+                    myServo2.setPower(1);
                     myServo3.setPower(-1);
                     myServo4.setPower(1);
                     myServo5.setPower(-1);

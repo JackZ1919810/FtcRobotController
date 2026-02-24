@@ -40,7 +40,7 @@ public class ProvincialBlueFar extends OpMode {
     private double kI = 0.0015;
     private double kD = 0.0;
 
-    private double shooterTargetTPS = 965;
+    private double shooterTargetTPS = 900;
 
     private int lastShooterPos = 0;
     private double lastShooterTime = 0;
@@ -269,7 +269,7 @@ public class ProvincialBlueFar extends OpMode {
             Path3 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.000, 10.000), new Pose(62.000, 18.000))
+                            new BezierLine(new Pose(10.000, 10.000), new Pose(56.000, 18.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
                     .build();
@@ -277,7 +277,7 @@ public class ProvincialBlueFar extends OpMode {
             Path4 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(62.000, 18.000), new Pose(62.000, 35.000))
+                            new BezierLine(new Pose(56.000, 18.000), new Pose(56.000, 35.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(112.5), Math.toRadians(0))
                     .build();
@@ -285,7 +285,7 @@ public class ProvincialBlueFar extends OpMode {
             Path5 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(62.000, 35.000), new Pose(10.000, 35.000))
+                            new BezierLine(new Pose(56.000, 35.000), new Pose(10.000, 35.000))
                     )
                     .setConstantHeadingInterpolation(Math.toRadians(0))
                     .build();
@@ -293,7 +293,7 @@ public class ProvincialBlueFar extends OpMode {
             Path6 = follower
                     .pathBuilder()
                     .addPath(
-                            new BezierLine(new Pose(10.000, 35.000), new Pose(62.000, 18.000))
+                            new BezierLine(new Pose(10.000, 35.000), new Pose(56.000, 18.000))
                     )
                     .setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(112.5))
                     .build();

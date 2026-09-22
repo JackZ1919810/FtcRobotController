@@ -48,7 +48,7 @@ public class realTeleOp extends OpMode {
     private static final double INTAKE_RUN_TIME_S = 1.0;
 
     private double IntakePower = 1.0;
-    private double IndexPower = 1;
+    private double IndexPower = 0.7;
     private double stop = 0.0;
 
     private boolean autoAlignEnabled = false;
@@ -57,14 +57,12 @@ public class realTeleOp extends OpMode {
     private static final double Max_LL_Turn = 0.5;
     private static final double LL_Angle_Range_DEG = 2.0;
 
-    private double kP = 0.003;
-    private double kI = 0.0015;
-    private double kD = 0.000;
-    private double shooterTargetTPS = 965;
+    private double shooterPower = 0.8;
+    private static final double SHOOTER_POWER_STEP = 0.025;
+    private boolean lastDpadUp = false;
+    private boolean lastDpadDown = false;
     private int lastShooterPos = 0;
     private double lastTime = 0;
-    private double shooterIntegral = 0;
-    private double lastError = 0;
     private double startTime = 0;
     private int shooterLoopTimes = 0;
 
@@ -199,12 +197,17 @@ public class realTeleOp extends OpMode {
         }
         lastAlignButton = alignButton;
 
-        if (gamepad2.dpad_up) {
-            shooterTargetTPS = 965; // Far target
-        } else if (gamepad2.dpad_down) {
-            shooterTargetTPS = 875; // close target
+        // shooter power adjust
+        boolean dpadUp = gamepad2.dpad_up;
+        boolean dpadDown = gamepad2.dpad_down;
+        if (dpadUp && !lastDpadUp) {
+            shooterPower += SHOOTER_POWER_STEP;
+        } else if (dpadDown && !lastDpadDown) {
+            shooterPower -= SHOOTER_POWER_STEP;
         }
-        shooterTargetTPS = Range.clip(shooterTargetTPS, 0, 5000); // clamp reasonable range
+        lastDpadUp = dpadUp;
+        lastDpadDown = dpadDown;
+        shooterPower = Range.clip(shooterPower, 0, 1);
 
         double lx = cubicDeadzone(gamepad1.left_stick_x);
         double ly = cubicDeadzone(-gamepad1.left_stick_y);
@@ -273,33 +276,23 @@ public class realTeleOp extends OpMode {
         lastBLPower = bl;
         lastBRPower = br;
 
-        // shooter PID
+        // shooter (open loop, PID disabled)
         int currentPos = shooter1.getCurrentPosition();
         double currentTime = getRuntime();
         double dt = currentTime - lastTime;
         double shooterTPS = dt > 0 ? (currentPos - lastShooterPos) / dt : 0;
 
         if (shooterActive && !ballsOut) {
-            if (shooterLoopTimes == 0) startTime = getRuntime();
-            indexActive = 0;
-            double error = shooterTargetTPS - Math.abs(shooterTPS);
-            shooterIntegral += error * dt;
-            double derivative = (dt > 0) ? (error - lastError) / dt : 0;
-            double output = kP * error + kI * shooterIntegral + kD * derivative;
-            double shooterPower = -Range.clip(-output, -1, 0);
-            shooter1.setPower(-shooterPower);
-            shooter2.setPower(-shooterPower);
+            shooter1.setPower(shooterPower);
+            shooter2.setPower(shooterPower);
+        }
 
-            lastError = error;
-            shooterLoopTimes++;
-        } else {
-            shooterLoopTimes = 0;
-            if (shooter1.getPower() != 0 || shooter2.getPower() != 0) {
+        else if(!shooterActive){
+
+        if (shooter1.getPower() != 0 || shooter2.getPower() != 0) {
                 shooter1.setPower(0);
                 shooter2.setPower(0);
             }
-            shooterIntegral = 0;
-            lastError = 0;
         }
 
         lastShooterPos = currentPos;
@@ -307,10 +300,10 @@ public class realTeleOp extends OpMode {
 
         // balls out
         if (ballsOut) {
-            Index.setPower(0.5);
+            Index.setPower(-0.5);
             IntakeMotor.setPower(-0.7);
-            shooter1.setPower(1);
-            shooter2.setPower(1);
+            shooter1.setPower(-0.6);
+            shooter2.setPower(-0.6);
         } else if (!shooterActive && indexActive != 1) {
             if (Index.getPower() != stop) {
                 Index.setPower(stop);
@@ -319,25 +312,26 @@ public class realTeleOp extends OpMode {
 
         // shoot indexer spinning
         if (shootIndex){
-            Index.setPower(-IndexPower);
+            Index.setPower(IndexPower);
         }
 
         // index
         if (gamepad2.a) indexActive = 1;
-        boolean limitSwitchTriggered = !Mag_Switch.getState();
-        if (indexActive == 1 && !ballsOut && !shooterActive) {
-            if (!limitSwitchTriggered) {
-                Index.setPower(-0.7);
-                if (gamepad2.b) {
-                    Index.setPower(stop);
-                    indexActive = 0;
-                }
-            } else {
-                Index.setPower(stop);
-                indexActive = 0;
-            }
+        //boolean limitSwitchTriggered = !Mag_Switch.getState();
+
+        if (indexActive == 1 && !ballsOut && !shootIndex) {
+            Index.setPower(0.5);
+
+        }
+        else if (!ballsOut && !shootIndex) {
+            Index.setPower(0);
+            indexActive = 0;
         }
 
+        if (gamepad2.b) {
+            Index.setPower(stop);
+            indexActive = 0;
+        }
 
         // Intake
         // If the detect-timer is active, it owns the intake power.
@@ -411,6 +405,7 @@ public class realTeleOp extends OpMode {
             }
         }
 
+        telemetry.addData("Shooter Power", shooterPower);
         telemetry.addData("Shooter TPS", shooterTPS);
         telemetry.addData("Loop Time (ms)", (System.nanoTime() / 1_000_000.0));
         telemetry.addData("Tag seen", tagSeen);
